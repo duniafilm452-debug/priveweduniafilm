@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel - ShihaoStream</title>
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+  <!-- Tab Navigation -->
+  <div class="admin-tabs">
+    <button class="tab-btn active" onclick="showSection('dashboard')">📊 Dashboard</button>
+    <button class="tab-btn" onclick="showSection('upload')">📤 Upload Film</button>
+    <button class="tab-btn" onclick="window.location.href='index.html'">🏠 Kembali ke Situs</button>
+    <button class="tab-btn logout-btn" onclick="logout()">🚪 Logout</button>
+  </div>
+
+  <!-- Access Denied Message -->
+  <div id="access-denied" class="access-denied hidden">
+    <div class="access-denied-content">
+      <div class="access-denied-icon">🚫</div>
+      <h2>Akses Ditolak</h2>
+      <p>Hanya administrator yang dapat mengakses halaman ini.</p>
+      <p>Anda akan diarahkan ke halaman utama dalam <span id="countdown">5</span> detik.</p>
+      <button onclick="redirectToHome()" class="access-denied-btn">Kembali ke Home</button>
+    </div>
+  </div>
+
+  <!-- Dashboard Section -->
+  <section id="dashboard" class="dashboard-section active">
+    <header class="admin-header">
+      <h1>Admin Dashboard</h1>
+      <span id="admin-name-display">Admin</span>
+    </header>
+
+    <main class="admin-main">
+      <div class="admin-container">
+        <!-- Quick Stats -->
+        <section class="quick-stats">
+          <div class="stat-card total-movies">
+            <div class="stat-icon">🎬</div>
+            <div class="stat-info">
+              <span class="stat-number" id="total-movies">0</span>
+              <span class="stat-label">Total Film</span>
+            </div>
+            <div class="stat-trend up">+12%</div>
+          </div>
+
+          <div class="stat-card total-views">
+            <div class="stat-icon">👁️</div>
+            <div class="stat-info">
+              <span class="stat-number" id="total-views">0</span>
+              <span class="stat-label">Total Tayangan</span>
+            </div>
+            <div class="stat-trend up">+25%</div>
+          </div>
+
+          <div class="stat-card total-users">
+            <div class="stat-icon">👥</div>
+            <div class="stat-info">
+              <span class="stat-number" id="total-users">0</span>
+              <span class="stat-label">Total Pengguna</span>
+            </div>
+            <div class="stat-trend up">+8%</div>
+          </div>
+
+          <div class="stat-card total-likes">
+            <div class="stat-icon">👍</div>
+            <div class="stat-info">
+              <span class="stat-number" id="total-likes">0</span>
+              <span class="stat-label">Total Likes</span>
+            </div>
+            <div class="stat-trend up">+18%</div>
+          </div>
+        </section>
+
+        <!-- Charts Section -->
+        <section class="charts-section">
+          <!-- Views Chart -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3>Statistik Tayangan</h3>
+              <select id="views-period" class="period-select">
+                <option value="7days">7 Hari Terakhir</option>
+                <option value="30days">30 Hari Terakhir</option>
+                <option value="90days">90 Hari Terakhir</option>
+              </select>
+            </div>
+            <div class="chart-container">
+              <canvas id="views-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- Category Distribution -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3>Distribusi Kategori</h3>
+            </div>
+            <div class="chart-container">
+              <canvas id="category-chart"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <!-- Recent Activity & Top Content -->
+        <section class="content-section">
+          <!-- Recent Activity -->
+          <div class="activity-card">
+            <div class="card-header">
+              <h3>Aktivitas Terbaru</h3>
+              <button id="refresh-activity" class="refresh-btn">🔄</button>
+            </div>
+            <div class="activity-list" id="activity-list">
+              <div class="loading-activity">
+                <div class="loading-spinner"></div>
+                <p>Memuat aktivitas...</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Movies -->
+          <div class="top-movies-card">
+            <div class="card-header">
+              <h3>Film Terpopuler</h3>
+            </div>
+            <div class="top-movies-list" id="top-movies-list">
+              <div class="loading-movies">
+                <div class="loading-spinner"></div>
+                <p>Memuat film...</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Quick Actions -->
+        <section class="quick-actions">
+          <h3>Quick Actions</h3>
+          <div class="action-buttons">
+            <button onclick="showSection('upload')" class="action-btn upload-btn">
+              <span class="action-icon">📤</span>
+              <span>Upload Film Baru</span>
+            </button>
+            <button onclick="window.location.href='manage-movies.html'" class="action-btn manage-btn">
+              <span class="action-icon">🎬</span>
+              <span>Kelola Film</span>
+            </button>
+            <button class="action-btn users-btn" onclick="manageUsers()">
+              <span class="action-icon">👥</span>
+              <span>Kelola User</span>
+            </button>
+            <button class="action-btn analytics-btn">
+              <span class="action-icon">📊</span>
+              <span>Analitik Lengkap</span>
+            </button>
+          </div>
+        </section>
+      </div>
+    </main>
+  </section>
+
+  <!-- Upload Section -->
+  <section id="upload" class="dashboard-section">
+    <header class="admin-header">
+      <button class="back-btn" onclick="showSection('dashboard')">← Kembali ke Dashboard</button>
+      <h1>Admin Panel</h1>
+      <span>Upload Konten Baru</span>
+    </header>
+
+    <main class="admin-main">
+      <div class="admin-container">
+        <!-- Form Upload Konten -->
+        <section class="upload-section">
+          <h2>Upload Film Baru</h2>
+          
+          <form id="upload-form" class="upload-form">
+            <!-- Judul Film -->
+            <div class="form-group">
+              <label for="movie-title">Judul Film *</label>
+              <input 
+                type="text" 
+                id="movie-title" 
+                name="title" 
+                required 
+                placeholder="Masukkan judul film"
+              >
+            </div>
+
+            <!-- Deskripsi -->
+            <div class="form-group">
+              <label for="movie-desc">Deskripsi</label>
+              <textarea 
+                id="movie-desc" 
+                name="description" 
+                rows="4" 
+                placeholder="Masukkan deskripsi film"
+              ></textarea>
+            </div>
+
+            <!-- Kategori -->
+            <div class="form-group">
+              <label for="movie-category">Kategori *</label>
+              <select id="movie-category" name="category" required>
+                <option value="">Pilih Kategori</option>
+                <option value="drakor">Drakor</option>
+                <option value="dracin">Dracin</option>
+                <option value="donghua">Donghua</option>
+                <option value="anime">Anime</option>
+                <option value="film">Film</option>
+                <option value="series">Series</option>
+                <option value="lainnya">Lainnya</option>
+              </select>
+            </div>
+
+            <!-- URL Video -->
+            <div class="form-group">
+              <label for="video-url">URL Video *</label>
+              <input 
+                type="url" 
+                id="video-url" 
+                name="video_url" 
+                required 
+                placeholder="https://www.youtube.com/watch?v=... atau https://drive.google.com/..."
+              >
+              <small class="help-text">
+                Support: YouTube, Google Drive, atau URL video langsung
+              </small>
+            </div>
+
+            <!-- Durasi -->
+            <div class="form-group">
+              <label for="movie-duration">Durasi (menit)</label>
+              <input 
+                type="number" 
+                id="movie-duration" 
+                name="duration" 
+                min="1" 
+                placeholder="120"
+              >
+            </div>
+
+            <!-- Upload Thumbnail -->
+            <div class="form-group">
+              <label for="thumbnail-upload">Thumbnail *</label>
+              
+              <!-- Opsi Upload File -->
+              <div class="upload-area" id="thumbnail-upload-area">
+                <input 
+                  type="file" 
+                  id="thumbnail-upload" 
+                  accept="image/*" 
+                  hidden
+                >
+                <div class="upload-placeholder">
+                  <div class="upload-icon">📷</div>
+                  <p>Klik untuk upload thumbnail</p>
+                  <small>Format: JPG, PNG, WebP (Maks. 5MB)</small>
+                </div>
+                <div class="upload-preview hidden">
+                  <img id="thumbnail-preview" src="" alt="Preview thumbnail">
+                  <button type="button" id="change-thumbnail" class="change-btn">Ganti</button>
+                </div>
+              </div>
+
+              <!-- Opsi URL Gambar -->
+              <div class="form-group" style="margin-top: 12px;">
+                <label for="thumbnail-url">Atau Masukkan URL Gambar</label>
+                <input 
+                  type="url" 
+                  id="thumbnail-url" 
+                  name="thumbnail_url" 
+                  placeholder="https://example.com/image.jpg"
+                >
+                <small class="help-text">
+                  URL gambar thumbnail dari internet
+                </small>
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="form-actions">
+              <button type="button" id="reset-btn" class="btn-secondary">Reset</button>
+              <button type="submit" id="submit-btn" class="btn-primary">
+                <span id="submit-text">Upload Film</span>
+                <div id="submit-spinner" class="spinner hidden"></div>
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Daftar Film yang Sudah Diupload -->
+        <section class="movies-list-section">
+          <div class="section-header">
+            <h2>Film Terupload</h2>
+            <div class="filter-controls">
+              <select id="category-filter">
+                <option value="">Semua Kategori</option>
+                <option value="drakor">Drakor</option>
+                <option value="dracin">Dracin</option>
+                <option value="donghua">Donghua</option>
+                <option value="anime">Anime</option>
+                <option value="film">Film</option>
+                <option value="series">Series</option>
+                <option value="lainnya">Lainnya</option>
+              </select>
+            </div>
+          </div>
+          <div id="movies-list" class="movies-list">
+            <div class="loading-movies">Memuat daftar film...</div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </section>
+
+  <!-- Success Popup -->
+  <div id="success-popup" class="popup-overlay hidden">
+    <div class="popup-box success-popup">
+      <div class="popup-icon">✅</div>
+      <h3>Berhasil!</h3>
+      <p id="success-message">Film berhasil diupload.</p>
+      <div class="popup-actions">
+        <button id="success-ok" class="popup-ok-btn">OK</button>
+        <button id="success-view" class="popup-view-btn">Lihat Film</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Popup -->
+  <div id="error-popup" class="popup-overlay hidden">
+    <div class="popup-box error-popup">
+      <div class="popup-icon">❌</div>
+      <h3>Gagal Upload</h3>
+      <p id="error-message">Terjadi kesalahan saat upload.</p>
+      <div class="popup-actions">
+        <button id="error-ok" class="popup-ok-btn">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="loading-overlay hidden">
+    <div class="loading-spinner"></div>
+    <p>Memuat...</p>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script type="module" src="admin.js"></script>
+</body>
+</html>

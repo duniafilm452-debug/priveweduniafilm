@@ -1,0 +1,387 @@
+/* CSS untuk styling halaman profil */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+  background-color: #f5f5f5;
+  color: #333;
+  padding-bottom: 70px;
+}
+
+/* Header */
+.profile-header {
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+  color: white;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.profile-header h1 {
+  font-size: 1.5rem;
+}
+
+.login-btn, .logout-btn {
+  background-color: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 8px 15px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.login-btn:hover, .logout-btn:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Main Container */
+.profile-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* User Info */
+.user-info {
+  background-color: white;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.avatar-wrapper {
+  position: relative;
+  width: 100px;
+  height: 100px;
+}
+
+.avatar-wrapper img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #6a11cb;
+}
+
+.avatar-edit {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background-color: #6a11cb;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.user-details h2 {
+  margin-bottom: 5px;
+  color: #333;
+}
+
+.user-details p {
+  color: #666;
+  margin-bottom: 15px;
+}
+
+.edit-btn {
+  background-color: #6a11cb;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.edit-btn:hover {
+  background-color: #5a0db0;
+}
+
+/* Sections */
+.watch-history, .favorites, .contact {
+  background-color: white;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.section-header h3 {
+  margin-bottom: 0;
+  color: #333;
+}
+
+.view-all-btn {
+  background-color: #6a11cb;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 15px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background-color 0.3s;
+}
+
+.view-all-btn:hover {
+  background-color: #5a0db0;
+}
+
+/* Horizontal Scroll Container */
+.horizontal-scroll {
+  display: flex;
+  gap: 15px;
+  overflow-x: auto;
+  padding: 10px 5px;
+  scrollbar-width: thin;
+  scrollbar-color: #6a11cb #f0f0f0;
+}
+
+.horizontal-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.horizontal-scroll::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 3px;
+}
+
+.horizontal-scroll::-webkit-scrollbar-thumb {
+  background: #6a11cb;
+  border-radius: 3px;
+}
+
+.horizontal-scroll::-webkit-scrollbar-thumb:hover {
+  background: #5a0db0;
+}
+
+/* History dan Favorit Items */
+.history-item, .favorite-item {
+  flex: 0 0 auto;
+  width: 120px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.history-item:hover, .favorite-item:hover {
+  transform: translateY(-5px);
+}
+
+.history-item img, .favorite-item img {
+  width: 120px;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.history-item p, .favorite-item p {
+  margin: 8px 0 0 0;
+  font-size: 0.8rem;
+  color: #333;
+  text-align: center;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.empty-text {
+  color: #999;
+  text-align: center;
+  padding: 40px 20px;
+  font-style: italic;
+  width: 100%;
+}
+
+.contact-link {
+  color: #6a11cb;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.contact-link:hover {
+  text-decoration: underline;
+}
+
+/* Modal */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 25px;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content h3 {
+  margin-bottom: 20px;
+  text-align: center;
+  color: #333;
+}
+
+.modal-content input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 1rem;
+}
+
+.modal-content button {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s;
+}
+
+.modal-content button:not(.cancel) {
+  background-color: #6a11cb;
+  color: white;
+}
+
+.modal-content button:not(.cancel):hover {
+  background-color: #5a0db0;
+}
+
+.cancel {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.cancel:hover {
+  background-color: #e0e0e0;
+}
+
+/* Navigation */
+.profile-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: white;
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 0;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+}
+
+.profile-nav button {
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.8rem;
+  color: #666;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 5px;
+  transition: all 0.3s;
+}
+
+.profile-nav button:hover {
+  color: #6a11cb;
+  background-color: #f5f5f5;
+}
+
+.profile-nav button span {
+  margin-top: 5px;
+}
+
+/* Utility Classes */
+.hidden {
+  display: none !important;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .user-info {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .profile-container {
+    padding: 10px;
+  }
+  
+  .modal-content {
+    width: 95%;
+    margin: 10px;
+  }
+  
+  .history-item, .favorite-item {
+    width: 100px;
+  }
+  
+  .history-item img, .favorite-item img {
+    width: 100px;
+    height: 140px;
+  }
+  
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .view-all-btn {
+    align-self: flex-end;
+  }
+}
+
+@media (max-width: 400px) {
+  .history-item, .favorite-item {
+    width: 90px;
+  }
+  
+  .history-item img, .favorite-item img {
+    width: 90px;
+    height: 120px;
+  }
+  
+  .history-item p, .favorite-item p {
+    font-size: 0.75rem;
+  }
+}

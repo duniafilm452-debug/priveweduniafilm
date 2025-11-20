@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Riwayat Tonton - Dunia Film</title>
+  <link rel="stylesheet" href="history.css" />
+</head>
+<body>
+  <!-- Header -->
+  <header class="history-header">
+    <button onclick="window.location.href='profile.html'" class="back-btn">← Kembali</button>
+    <h1>Riwayat Tonton</h1>
+    <div class="header-actions">
+      <button id="sort-btn" class="sort-btn">🔽 Urutkan</button>
+      <button id="clear-all-btn" class="clear-btn">🗑️ Hapus Semua</button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="history-main">
+    <!-- Stats Section -->
+    <section class="stats-section">
+      <div class="stat-card">
+        <div class="stat-icon">👁️</div>
+        <div class="stat-info">
+          <span class="stat-number" id="total-watched">0</span>
+          <span class="stat-label">Total Ditonton</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⏱️</div>
+        <div class="stat-info">
+          <span class="stat-number" id="total-hours">0</span>
+          <span class="stat-label">Jam Menonton</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📅</div>
+        <div class="stat-info">
+          <span class="stat-number" id="active-days">0</span>
+          <span class="stat-label">Hari Aktif</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sort Options -->
+    <div id="sort-options" class="sort-options hidden">
+      <button class="sort-option active" data-sort="recent">Terbaru</button>
+      <button class="sort-option" data-sort="oldest">Terlama</button>
+      <button class="sort-option" data-sort="title">Judul A-Z</button>
+      <button class="sort-option" data-sort="views">Paling Populer</button>
+    </div>
+
+    <!-- History List -->
+    <section class="history-list-section">
+      <div class="section-header">
+        <h2>Film yang Ditonton</h2>
+        <div class="view-toggle">
+          <button id="grid-view" class="view-btn active">◼️</button>
+          <button id="list-view" class="view-btn">☰</button>
+        </div>
+      </div>
+
+      <div id="history-container" class="history-container grid-view">
+        <div class="loading-history">
+          <div class="loading-spinner"></div>
+          <p>Memuat riwayat tonton...</p>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div id="empty-state" class="empty-state hidden">
+        <div class="empty-icon">🎬</div>
+        <h3>Belum Ada Riwayat</h3>
+        <p>Film yang Anda tonton akan muncul di sini.</p>
+        <button onclick="window.location.href='index.html'" class="browse-btn">Jelajahi Film</button>
+      </div>
+
+      <!-- Load More -->
+      <div id="load-more-container" class="load-more-container hidden">
+        <button id="load-more-btn" class="load-more-btn">Muat Lebih Banyak</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Clear Confirmation Modal -->
+  <div id="clear-modal" class="modal-overlay hidden">
+    <div class="confirmation-modal">
+      <div class="modal-icon">⚠️</div>
+      <h3>Hapus Semua Riwayat?</h3>
+      <p>Anda akan menghapus semua riwayat tonton. Tindakan ini tidak dapat dibatalkan.</p>
+      <div class="modal-actions">
+        <button id="confirm-clear" class="confirm-btn">Ya, Hapus Semua</button>
+        <button id="cancel-clear" class="cancel-btn">Batal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="bottom-nav">
+    <button onclick="window.location.href='index.html'">🏠<span>Beranda</span></button>
+    <button onclick="window.location.href='profile.html'">👤<span>Profil</span></button>
+    <button onclick="window.location.href='history.html'" class="active">📺<span>Riwayat</span></button>
+  </nav>
+
+  <script type="module" src="history.js"></script>
+</body>
+</html>

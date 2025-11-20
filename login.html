@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login - ShihaoStream</title>
+  <link rel="stylesheet" href="login.css" />
+</head>
+<body>
+  <div class="login-container">
+    <!-- Header -->
+    <header class="login-header">
+      <button onclick="window.location.href='index.html'" class="back-btn">← Kembali</button>
+      <h1>ShihaoStream</h1>
+    </header>
+
+    <!-- Main Content -->
+    <main class="login-main">
+      <div class="login-card">
+        <!-- Logo/Icon -->
+        <div class="login-icon">
+          <div class="icon-circle">🎬</div>
+          <h2>Selamat Datang</h2>
+          <p id="login-subtitle">Masuk ke akun Anda</p>
+        </div>
+
+        <!-- Mode Selector -->
+        <div class="mode-selector">
+          <button class="mode-btn active" data-mode="user">User</button>
+          <button class="mode-btn" data-mode="admin">Admin</button>
+        </div>
+
+        <!-- Tabs (Hanya untuk User Mode) -->
+        <div id="user-tabs" class="tab-container">
+          <button class="tab-btn active" data-tab="login">Masuk</button>
+          <button class="tab-btn" data-tab="register">Daftar</button>
+        </div>
+
+        <!-- Admin Login Form -->
+        <form id="admin-form" class="auth-form">
+          <div class="form-group">
+            <label for="admin-email">Email Admin</label>
+            <input 
+              type="email" 
+              id="admin-email" 
+              placeholder="admin@example.com"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="admin-password">Password Admin</label>
+            <input 
+              type="password" 
+              id="admin-password" 
+              placeholder="Masukkan password admin"
+              required
+            >
+          </div>
+
+          <button type="submit" class="submit-btn admin-btn">
+            <span id="admin-text">Login sebagai Admin</span>
+            <div id="admin-spinner" class="spinner hidden"></div>
+          </button>
+        </form>
+
+        <!-- User Login Form -->
+        <form id="login-form" class="auth-form active">
+          <div class="form-group">
+            <label for="login-email">Email</label>
+            <input 
+              type="email" 
+              id="login-email" 
+              placeholder="Masukkan email Anda"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input 
+              type="password" 
+              id="login-password" 
+              placeholder="Masukkan password Anda"
+              required
+            >
+          </div>
+
+          <div class="form-options">
+            <label class="checkbox-container">
+              <input type="checkbox" id="remember-me">
+              <span class="checkmark"></span>
+              Ingat saya
+            </label>
+            <a href="#" class="forgot-password">Lupa password?</a>
+          </div>
+
+          <button type="submit" class="submit-btn">
+            <span id="login-text">Masuk</span>
+            <div id="login-spinner" class="spinner hidden"></div>
+          </button>
+        </form>
+
+        <!-- User Register Form -->
+        <form id="register-form" class="auth-form">
+          <div class="form-group">
+            <label for="register-email">Email</label>
+            <input 
+              type="email" 
+              id="register-email" 
+              placeholder="Masukkan email Anda"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="register-password">Password</label>
+            <input 
+              type="password" 
+              id="register-password" 
+              placeholder="Buat password (min. 6 karakter)"
+              minlength="6"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="confirm-password">Konfirmasi Password</label>
+            <input 
+              type="password" 
+              id="confirm-password" 
+              placeholder="Ulangi password Anda"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input 
+              type="text" 
+              id="username" 
+              placeholder="Pilih username Anda"
+              required
+            >
+          </div>
+
+          <div class="form-options">
+            <label class="checkbox-container">
+              <input type="checkbox" id="agree-terms" required>
+              <span class="checkmark"></span>
+              Saya setuju dengan <a href="#" class="terms-link">Syarat & Ketentuan</a>
+            </label>
+          </div>
+
+          <button type="submit" class="submit-btn">
+            <span id="register-text">Daftar</span>
+            <div id="register-spinner" class="spinner hidden"></div>
+          </button>
+        </form>
+
+        <!-- Social Login (Hanya untuk User Mode) -->
+        <div id="social-login" class="social-login">
+          <div class="divider">
+            <span>Atau lanjutkan dengan</span>
+          </div>
+          <div class="social-buttons">
+            <button class="social-btn google-btn">
+              <span class="social-icon">🔍</span>
+              Google
+            </button>
+            <button class="social-btn github-btn">
+              <span class="social-icon">💻</span>
+              GitHub
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="login-footer">
+      <p>Dengan melanjutkan, Anda menyetujui <a href="#">Kebijakan Privasi</a> kami</p>
+    </footer>
+  </div>
+
+  <!-- Success Popup -->
+  <div id="success-popup" class="popup-overlay hidden">
+    <div class="popup-box success-popup">
+      <div class="popup-icon">✅</div>
+      <h3 id="success-title">Berhasil!</h3>
+      <p id="success-message">Operasi berhasil dilakukan.</p>
+      <div class="popup-actions">
+        <button id="success-ok" class="popup-ok-btn">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Popup -->
+  <div id="error-popup" class="popup-overlay hidden">
+    <div class="popup-box error-popup">
+      <div class="popup-icon">❌</div>
+      <h3>Terjadi Kesalahan</h3>
+      <p id="error-message">Terjadi kesalahan saat memproses permintaan.</p>
+      <div class="popup-actions">
+        <button id="error-ok" class="popup-ok-btn">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="loading-overlay hidden">
+    <div class="loading-spinner"></div>
+    <p id="loading-text">Memproses...</p>
+  </div>
+
+  <script type="module" src="login.js"></script>
+</body>
+</html>

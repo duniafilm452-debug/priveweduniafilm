@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profil Saya</title>
+  <link rel="stylesheet" href="profile.css" />
+</head>
+<body>
+  <!-- Header -->
+  <header class="profile-header">
+    <h1>Profil Saya</h1>
+    <button id="login-btn-header" class="login-btn hidden">Login</button>
+    <button id="logout-btn" class="logout-btn hidden">Keluar</button>
+  </header>
+
+  <!-- Main Container -->
+  <main class="profile-container">
+    <!-- User Info -->
+    <section class="user-info">
+      <div class="avatar-wrapper">
+        <img id="avatar-img" src="https://placehold.co/100x100?text=Avatar" alt="Avatar" />
+        <label for="avatar-upload" class="avatar-edit">Ubah</label>
+        <input type="file" id="avatar-upload" accept="image/*" hidden />
+      </div>
+      <div class="user-details">
+        <h2 id="username">Pengguna</h2>
+        <p id="email">Email pengguna</p>
+        <button id="edit-profile-btn" class="edit-btn">Edit Profil</button>
+      </div>
+    </section>
+
+    <!-- Riwayat Tonton -->
+    <section class="watch-history">
+      <div class="section-header">
+        <h3>Riwayat Tonton</h3>
+        <button id="view-all-history" class="view-all-btn">Lihat Semua</button>
+      </div>
+      <div class="horizontal-scroll" id="history-list">
+        <p class="empty-text">Belum ada riwayat tontonan.</p>
+      </div>
+    </section>
+
+    <!-- Favorit -->
+    <section class="favorites">
+      <div class="section-header">
+        <h3>Favorit</h3>
+        <button id="view-all-favorites" class="view-all-btn">Lihat Semua</button>
+      </div>
+      <div class="horizontal-scroll" id="favorites-list">
+        <p class="empty-text">Belum ada favorit.</p>
+      </div>
+    </section>
+
+    <!-- Kontak -->
+    <section class="contact">
+      <h3>Hubungi Kami</h3>
+      <p>Jika ada masalah atau saran, hubungi kami di:</p>
+      <a href="duniafilm452@gmail.com" class="contact-link">duniafilm@gmail.com</a>
+    </section>
+  </main>
+
+  <!-- Modal Edit Profil -->
+  <div id="edit-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Edit Profil</h3>
+      <input type="text" id="edit-username" placeholder="Nama baru" />
+      <button id="save-profile-btn">Simpan</button>
+      <button id="cancel-edit-btn" class="cancel">Batal</button>
+    </div>
+  </div>
+
+  <!-- Navigasi Bawah -->
+  <nav class="profile-nav">
+    <button onclick="window.location.href='index.html'">🏠<span>Beranda</span></button>
+    <button onclick="window.location.href='favorites.html'">⭐<span>Favorit</span></button>
+    <button onclick="window.location.href='profile.html'">👤<span>Profil</span></button>
+  </nav>
+
+  <script type="module" src="profile.js"></script>
+</body>
+</html>

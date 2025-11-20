@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Favorit Saya - Dunia Film</title>
+  <link rel="stylesheet" href="favorites.css" />
+</head>
+<body>
+  <!-- Header -->
+  <header class="favorites-header">
+    <button onclick="window.location.href='profile.html'" class="back-btn">← Kembali</button>
+    <h1>Film Favorit</h1>
+    <div class="header-actions">
+      <button id="sort-btn" class="sort-btn">🔽 Urutkan</button>
+      <button id="filter-btn" class="filter-btn">🔍 Filter</button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="favorites-main">
+    <!-- Stats Section -->
+    <section class="stats-section">
+      <div class="stat-card">
+        <div class="stat-icon">⭐</div>
+        <div class="stat-info">
+          <span class="stat-number" id="total-favorites">0</span>
+          <span class="stat-label">Total Favorit</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📊</div>
+        <div class="stat-info">
+          <span class="stat-number" id="total-categories">0</span>
+          <span class="stat-label">Kategori</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sort & Filter Options -->
+    <div id="sort-options" class="sort-options hidden">
+      <button class="sort-option active" data-sort="recent">Terbaru</button>
+      <button class="sort-option" data-sort="oldest">Terlama</button>
+      <button class="sort-option" data-sort="title">Judul A-Z</button>
+      <button class="sort-option" data-sort="views">Paling Ditonton</button>
+    </div>
+
+    <div id="filter-options" class="filter-options hidden">
+      <div class="filter-group">
+        <h4>Kategori</h4>
+        <div class="category-filters">
+          <label class="filter-checkbox">
+            <input type="checkbox" value="all" checked> Semua Kategori
+          </label>
+          <label class="filter-checkbox">
+            <input type="checkbox" value="Drakor"> Drakor
+          </label>
+          <label class="filter-checkbox">
+            <input type="checkbox" value="Dracin"> Dracin
+          </label>
+          <label class="filter-checkbox">
+            <input type="checkbox" value="Donghua"> Donghua
+          </label>
+          <label class="filter-checkbox">
+            <input type="checkbox" value="lainnya"> Lainnya
+          </label>
+        </div>
+      </div>
+      <div class="filter-actions">
+        <button id="apply-filter" class="apply-btn">Terapkan</button>
+        <button id="reset-filter" class="reset-btn">Reset</button>
+      </div>
+    </div>
+
+    <!-- Favorites Grid -->
+    <section class="favorites-grid-section">
+      <div class="section-header">
+        <h2>Film Favorit Saya</h2>
+        <div class="view-toggle">
+          <button id="grid-view" class="view-btn active">◼️</button>
+          <button id="list-view" class="view-btn">☰</button>
+        </div>
+      </div>
+
+      <div id="favorites-container" class="favorites-container grid-view">
+        <div class="loading-favorites">
+          <div class="loading-spinner"></div>
+          <p>Memuat film favorit...</p>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div id="empty-state" class="empty-state hidden">
+        <div class="empty-icon">⭐</div>
+        <h3>Belum Ada Favorit</h3>
+        <p>Film yang Anda tandai sebagai favorit akan muncul di sini.</p>
+        <button onclick="window.location.href='index.html'" class="browse-btn">Jelajahi Film</button>
+      </div>
+
+      <!-- Load More -->
+      <div id="load-more-container" class="load-more-container hidden">
+        <button id="load-more-btn" class="load-more-btn">Muat Lebih Banyak</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Movie Actions Modal -->
+  <div id="action-modal" class="modal-overlay hidden">
+    <div class="action-modal">
+      <div class="modal-header">
+        <h3 id="modal-movie-title">Judul Film</h3>
+        <button id="close-modal" class="close-btn">×</button>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-action watch-action" onclick="watchMovie()">▶️ Tonton Sekarang</button>
+        <button class="modal-action remove-action" onclick="removeFromFavorites()">🗑️ Hapus dari Favorit</button>
+        <button class="modal-action share-action" onclick="shareMovie()">🔗 Bagikan Film</button>
+        <button class="modal-action cancel-action" onclick="closeModal()">Batal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="bottom-nav">
+    <button onclick="window.location.href='index.html'">🏠<span>Beranda</span></button>
+    <button onclick="window.location.href='favorites.html'" class="active">⭐<span>Favorit</span></button>
+   <button onclick="window.location.href='profile.html'">👤<span>Profil</span></button>
+  </nav>
+
+  <script type="module" src="favorites.js"></script>
+</body>
+</html>

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kelola Film - ShihaoStream</title>
+  <link rel="stylesheet" href="manage-movies.css" />
+</head>
+<body>
+  <!-- Header -->
+  <header class="manage-movies-header">
+    <div class="header-left">
+      <button onclick="window.location.href='admin.html'" class="back-btn">← Dashboard</button>
+      <h1>Kelola Film</h1>
+    </div>
+    <div class="header-right">
+      <button onclick="window.location.href='admin.html'" class="add-movie-btn">+ Tambah Film</button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="manage-movies-main">
+    <!-- Search and Filter Bar -->
+    <section class="search-filter-bar">
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="Cari judul film...">
+        <button id="search-btn" class="search-btn">🔍</button>
+      </div>
+      
+      <div class="filter-controls">
+        <select id="category-filter" class="filter-select">
+          <option value="">Semua Kategori</option>
+          <option value="drakor">Drakor</option>
+          <option value="dracin">Dracin</option>
+          <option value="donghua">Donghua</option>
+          <option value="anime">Anime</option>
+          <option value="film">Film</option>
+          <option value="series">Series</option>
+          <option value="lainnya">Lainnya</option>
+        </select>
+        
+        <select id="sort-filter" class="filter-select">
+          <option value="newest">Terbaru</option>
+          <option value="oldest">Terlama</option>
+          <option value="views-desc">Paling Banyak Ditonton</option>
+          <option value="views-asc">Paling Sedikit Ditonton</option>
+          <option value="title-asc">Judul A-Z</option>
+          <option value="title-desc">Judul Z-A</option>
+        </select>
+        
+        <button id="bulk-actions-btn" class="bulk-actions-btn">Aksi Massal ▼</button>
+      </div>
+    </section>
+
+    <!-- Bulk Actions Panel -->
+    <div id="bulk-actions-panel" class="bulk-actions-panel hidden">
+      <div class="bulk-actions-header">
+        <span id="selected-count">0 film dipilih</span>
+        <div class="bulk-buttons">
+          <button id="bulk-delete" class="bulk-btn delete-btn">Hapus yang Dipilih</button>
+          <button id="clear-selection" class="bulk-btn clear-btn">Batal Pilih</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Movies Table -->
+    <section class="movies-table-section">
+      <div class="table-container">
+        <table class="movies-table">
+          <thead>
+            <tr>
+              <th class="checkbox-cell">
+                <input type="checkbox" id="select-all">
+              </th>
+              <th class="thumbnail-cell">Thumbnail</th>
+              <th class="title-cell">Judul Film</th>
+              <th class="category-cell">Kategori</th>
+              <th class="views-cell">Tayangan</th>
+              <th class="likes-cell">Likes</th>
+              <th class="duration-cell">Durasi</th>
+              <th class="date-cell">Tanggal Upload</th>
+              <th class="actions-cell">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="movies-table-body">
+            <tr>
+              <td colspan="9" class="loading-cell">
+                <div class="loading-movies">
+                  <div class="loading-spinner"></div>
+                  <p>Memuat data film...</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Empty State -->
+      <div id="empty-state" class="empty-state hidden">
+        <div class="empty-icon">🎬</div>
+        <h3>Belum Ada Film</h3>
+        <p>Mulai dengan menambahkan film pertama Anda.</p>
+        <button onclick="window.location.href='admin.html'" class="add-first-btn">+ Tambah Film Pertama</button>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination-container">
+        <div class="pagination-info">
+          Menampilkan <span id="showing-start">0</span>-<span id="showing-end">0</span> dari <span id="total-movies">0</span> film
+        </div>
+        <div class="pagination-controls">
+          <button id="prev-page" class="pagination-btn" disabled>‹ Prev</button>
+          <div class="page-numbers" id="page-numbers"></div>
+          <button id="next-page" class="pagination-btn">Next ›</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="delete-modal" class="modal-overlay hidden">
+    <div class="confirmation-modal">
+      <div class="modal-icon">🗑️</div>
+      <h3 id="delete-title">Hapus Film</h3>
+      <p id="delete-message">Apakah Anda yakin ingin menghapus film ini?</p>
+      <div class="modal-actions">
+        <button id="confirm-delete" class="confirm-btn">Ya, Hapus</button>
+        <button id="cancel-delete" class="cancel-btn">Batal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Movie Modal -->
+  <div id="edit-modal" class="modal-overlay hidden">
+    <div class="edit-modal">
+      <div class="modal-header">
+        <h3>Edit Film</h3>
+        <button id="close-edit-modal" class="close-btn">×</button>
+      </div>
+      <form id="edit-form" class="edit-form">
+        <input type="hidden" id="edit-movie-id">
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-title">Judul Film *</label>
+            <input type="text" id="edit-title" required>
+          </div>
+          <div class="form-group">
+            <label for="edit-category">Kategori *</label>
+            <select id="edit-category" required>
+              <option value="">Pilih Kategori</option>
+              <option value="drakor">Drakor</option>
+              <option value="dracin">Dracin</option>
+              <option value="donghua">Donghua</option>
+              <option value="anime">Anime</option>
+              <option value="film">Film</option>
+              <option value="series">Series</option>
+              <option value="lainnya">Lainnya</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-description">Deskripsi</label>
+          <textarea id="edit-description" rows="3"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-video-url">URL Video *</label>
+            <input type="url" id="edit-video-url" required>
+          </div>
+          <div class="form-group">
+            <label for="edit-duration">Durasi (menit)</label>
+            <input type="number" id="edit-duration" min="1">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-thumbnail-url">URL Thumbnail</label>
+          <input type="url" id="edit-thumbnail-url">
+          <small class="help-text">Kosongkan jika tidak ingin mengubah thumbnail</small>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" id="cancel-edit" class="cancel-btn">Batal</button>
+          <button type="submit" id="save-edit" class="save-btn">
+            <span id="save-text">Simpan Perubahan</span>
+            <div id="save-spinner" class="spinner hidden"></div>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="loading-overlay hidden">
+    <div class="loading-spinner"></div>
+    <p id="loading-text">Memproses...</p>
+  </div>
+
+  <script type="module" src="manage-movies.js"></script>
+</body>
+</html>
