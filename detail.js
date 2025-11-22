@@ -1,12 +1,16 @@
+// detail.js (VERSI PRO FINAL - SECURE)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
 
-// Konfigurasi Supabase
+// ⚠️ PENTING: Pastikan Row Level Security (RLS) diaktifkan di Supabase Anda!
+// Kunci ini bersifat publik (anon key), keamanan data bergantung pada aturan RLS di server.
 const SUPABASE_URL = "https://kwuqrsnkxlxzqvimoydu.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3dXFyc25reGx4enF2aW1veWR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0MTQ5ODUsImV4cCI6MjA3NDk5MDk4NX0.6XQjnexc69VVSzvB5XrL8gFGM54Me9c5TrR20ysfvTk";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Elemen HTML
-const videoPlayer = document.getElementById("video-player");
+// ------------------------
+// DOM ELEMENTS
+// ------------------------
+let videoPlayer;
 const titleBelowEl = document.getElementById("movie-title-below");
 const descEl = document.getElementById("movie-desc");
 const viewCount = document.getElementById("view-count");
@@ -17,1007 +21,544 @@ const likeCount = document.getElementById("like-count");
 const recommendList = document.getElementById("recommend-list");
 const toggleDescBtn = document.getElementById("toggle-desc-btn");
 
-// Elemen baru untuk episode
 const episodesTab = document.getElementById("episodes-tab");
 const recommendationsTab = document.getElementById("recommendations-tab");
 const episodesContent = document.getElementById("episodes-content");
 const recommendationsContent = document.getElementById("recommendations-content");
 const episodesList = document.getElementById("episodes-list");
 
-// Popup
 const popup = document.getElementById("login-popup");
 const popupCancel = document.getElementById("popup-cancel");
 const popupLogin = document.getElementById("popup-login");
 
-// Data aplikasi
+// Ad Elements
+const adOverlay = document.getElementById("ad-overlay");
+const adVideo = document.getElementById("ad-video");
+const adCountdown = document.getElementById("ad-seconds");
+const adSkipBtn = document.getElementById("ad-skip-btn");
+
+// ------------------------
+// STATE & CONFIG
+// ------------------------
 const params = new URLSearchParams(window.location.search);
-const movieId = params.get("id"); // Kembali menggunakan ID
+const movieId = params.get("id");
 let currentUser = null;
 let currentMovie = null;
 let hasIncrementedViews = false;
 
-// Inisialisasi aplikasi
+// Config Iklan
+const VAST_URL = "https://plumprush.com/d/m.FpzddGGnNHvPZ/G/Ue/Ye/mz9KucZ-UulikSPoTqYo2yO/TVIY4ZM/DpIxt/NcjlYe5NMdjbgdwEMmwp";
+const SKIP_AFTER_SECONDS = 5; // Lebih cepat (5 detik) lebih user friendly
+const MIDROLL_OFFSET_SECONDS = 900; 
+const MIN_DURATION_FOR_MIDROLL = 300;
+const ADS_SESSION_KEY = `ads_shown_${movieId}`; 
+
+let adFlags = { pre: false, mid: false, post: false };
+
+// ------------------------
+// INITIALIZATION
+// ------------------------
 document.addEventListener('DOMContentLoaded', async () => {
-    await initializeApp();
-    setupEventListeners();
+  await initializeApp();
+  setupEventListeners();
 });
 
-// Fungsi inisialisasi
 async function initializeApp() {
-    showLoading(true);
-    
-    try {
-        // Cek session user
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-            currentUser = session.user;
-        }
+  // Skeleton sudah ada di HTML, tidak perlu showLoading overlay fullscreen
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) currentUser = session.user;
 
-        await loadMovie();
-        
-    } catch (error) {
-        console.error('Error in initializeApp:', error);
-        showError('Gagal memuat aplikasi');
-    } finally {
-        showLoading(false);
+    await loadMovie();
+
+    const stored = sessionStorage.getItem(ADS_SESSION_KEY);
+    if (stored) {
+      try { adFlags = { ...adFlags, ...JSON.parse(stored) }; } catch (e) {}
     }
+  } catch (err) {
+    console.error('Init Error', err);
+    showError('Gagal memuat aplikasi. Periksa koneksi internet.');
+  }
 }
 
-// Setup event listeners
+// ------------------------
+// EVENT LISTENERS
+// ------------------------
 function setupEventListeners() {
-    // Navigation
-    if (popupCancel) popupCancel.onclick = () => popup.classList.add("hidden");
-    if (popupLogin) popupLogin.onclick = () => window.location.href = "loginuser.html";
-    
-    const backBtn = document.getElementById("back-btn");
-    if (backBtn) backBtn.onclick = () => window.location.href = "index.html";
-    
-    // Actions
-    if (likeBtn) likeBtn.onclick = handleLike;
-    if (favBtn) favBtn.onclick = handleFavorite;
-    if (shareBtn) shareBtn.onclick = handleShare;
-    
-    // Tab navigation
-    if (episodesTab) episodesTab.onclick = () => switchTab('episodes');
-    if (recommendationsTab) recommendationsTab.onclick = () => switchTab('recommendations');
-    
-    // Video events
-    if (videoPlayer) {
-        videoPlayer.addEventListener('load', handleVideoLoad);
-        videoPlayer.addEventListener('play', handleVideoPlay);
-        videoPlayer.addEventListener('error', handleVideoError);
-    }
+  if (popupCancel) popupCancel.onclick = () => popup.classList.add("hidden");
+  if (popupLogin) popupLogin.onclick = () => window.location.href = "loginuser.html";
 
-    // Toggle description
-    if (toggleDescBtn) {
-        toggleDescBtn.onclick = toggleDescription;
-    }
+  const backBtn = document.getElementById("back-btn");
+  if (backBtn) backBtn.onclick = () => window.location.href = "index.html";
 
-    // Auth state changes
-    supabase.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-            currentUser = session.user;
-            await checkLikeStatus();
-            await checkFavoriteStatus();
-            if (popup) popup.classList.add("hidden");
-            showSuccessPopup('Login berhasil!');
-        } else if (event === 'SIGNED_OUT') {
-            currentUser = null;
-            await checkLikeStatus();
-            await checkFavoriteStatus();
-        }
-    });
+  if (likeBtn) likeBtn.onclick = handleLike;
+  if (favBtn) favBtn.onclick = handleFavorite;
+  if (shareBtn) shareBtn.onclick = handleShare;
+
+  if (episodesTab) episodesTab.onclick = () => switchTab('episodes');
+  if (recommendationsTab) recommendationsTab.onclick = () => switchTab('recommendations');
+
+  if (adSkipBtn) adSkipBtn.onclick = stopAdAndResume;
+
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && session) {
+      currentUser = session.user;
+      await Promise.all([checkLikeStatus(), checkFavoriteStatus()]);
+      if (popup) popup.classList.add("hidden");
+    } else if (event === 'SIGNED_OUT') {
+      currentUser = null;
+    }
+  });
 }
 
-// ===============================
-// FUNGSI UTAMA
-// ===============================
-
-// Load movie data by ID
+// ------------------------
+// CORE LOGIC
+// ------------------------
 async function loadMovie() {
-    if (!movieId) {
-        showError('ID film tidak ditemukan');
-        return;
+  if (!movieId) return showError('ID film tidak ditemukan di URL');
+
+  try {
+    const { data, error } = await supabase.from("movies").select("*").eq("id", movieId).single();
+    if (error || !data) throw new Error('Film tidak ditemukan');
+
+    currentMovie = data;
+    await displayMovieData();
+    await Promise.all([checkLikeStatus(), checkFavoriteStatus()]);
+
+    // Auto switch tab logic
+    const seriesTitle = extractSeriesTitle(currentMovie.title);
+    if (seriesTitle) {
+      switchTab('episodes');
+    } else {
+      switchTab('recommendations');
     }
-
-    try {
-        const { data, error } = await supabase
-            .from("movies")
-            .select("*")
-            .eq("id", movieId)
-            .single();
-
-        if (error) {
-            console.error('Error loading movie:', error);
-            showError('Gagal memuat data film');
-            return;
-        }
-
-        if (!data) {
-            showError('Film tidak ditemukan');
-            return;
-        }
-
-        currentMovie = data;
-        await displayMovieData();
-
-        await Promise.all([
-            checkLikeStatus(),
-            checkFavoriteStatus()
-        ]);
-
-        // Cek apakah film ini bagian dari series
-        const seriesTitle = extractSeriesTitle(currentMovie.title);
-        if (seriesTitle) {
-            // Jika ada series, default tab ke episodes
-            setTimeout(() => switchTab('episodes'), 100);
-        } else {
-            // Jika bukan series, default tab ke recommendations
-            setTimeout(() => switchTab('recommendations'), 100);
-        }
-
-    } catch (error) {
-        console.error('Exception in loadMovie:', error);
-        showError('Terjadi kesalahan saat memuat film');
-    }
+  } catch (err) {
+    console.error(err);
+    showError('Gagal memuat data film.');
+  }
 }
 
-// Display movie data
 async function displayMovieData() {
-    if (titleBelowEl) titleBelowEl.textContent = currentMovie.title;
-    
-    // Set description dengan toggle functionality
-    if (descEl) {
-        descEl.textContent = currentMovie.description || "Tidak ada deskripsi.";
-        checkDescriptionLength();
-    }
+  if (titleBelowEl) titleBelowEl.textContent = currentMovie.title;
+  if (descEl) {
+    descEl.textContent = currentMovie.description || "Tidak ada deskripsi.";
+    checkDescriptionLength();
+  }
+  if (viewCount) viewCount.textContent = `👁️ ${currentMovie.views || 0} tayangan`;
 
-    // Update view count display
-    if (viewCount) {
-        viewCount.textContent = `👁️ ${currentMovie.views || 0} tayangan`;
-    }
+  let videoUrl = currentMovie.video_url;
+  // Proses URL (GoFile/Drive/Direct)
+  videoUrl = await processVideoUrl(videoUrl);
 
-    // Process video URL
-    let videoUrl = currentMovie.video_url;
-    videoUrl = await processVideoUrl(videoUrl);
-    
-    console.log('Final Video URL:', videoUrl);
-    
-    // Set video source berdasarkan jenis URL
-    if (videoUrl.includes('youtube.com/embed') || 
-        videoUrl.includes('drive.google.com') ||
-        videoUrl.includes('gofile.io')) {
-        
-        // Gunakan iframe untuk YouTube, Google Drive, dan GoFile
-        if (videoPlayer) {
-            videoPlayer.src = videoUrl;
-            videoPlayer.style.display = 'block';
-        }
-    } else {
-        // Gunakan HTML5 video player untuk Wasabi dan lainnya
-        replaceIframeWithVideoPlayer(videoUrl);
-    }
+  videoPlayer = document.getElementById("video-player");
+  if (!videoPlayer) return;
+
+  // Cek apakah URL adalah iframe embed
+  const isEmbed = videoUrl.includes('youtube.com/embed') || videoUrl.includes('drive.google.com') || (videoUrl.includes('gofile.io') && !videoUrl.endsWith('.mp4'));
+
+  if (isEmbed) {
+    videoPlayer.src = videoUrl;
+    videoPlayer.style.display = 'block';
+    attemptPreRollForIframe(); // Iklan untuk iframe
+  } else {
+    // Native HTML5 Video
+    replaceIframeWithVideoPlayer(videoUrl);
+  }
 }
 
-// Replace iframe dengan HTML5 video player untuk Wasabi
+// ------------------------
+// VIDEO PLAYER LOGIC
+// ------------------------
 function replaceIframeWithVideoPlayer(videoUrl) {
-    if (!videoPlayer) return;
-    
-    const videoContainer = videoPlayer.parentElement;
-    const newVideoPlayer = document.createElement('video');
-    
-    newVideoPlayer.id = 'video-player';
-    newVideoPlayer.controls = true;
-    newVideoPlayer.style.width = '100%';
-    newVideoPlayer.style.height = '100%';
-    newVideoPlayer.style.position = 'absolute';
-    newVideoPlayer.style.top = '0';
-    newVideoPlayer.style.left = '0';
-    newVideoPlayer.style.borderRadius = '12px';
-    
-    // Add source element
-    const source = document.createElement('source');
-    source.src = videoUrl;
-    source.type = getVideoMimeType(videoUrl);
-    
-    newVideoPlayer.appendChild(source);
-    newVideoPlayer.innerHTML += 'Browser Anda tidak mendukung pemutar video.';
-    
-    // Replace iframe dengan video element
-    videoPlayer.replaceWith(newVideoPlayer);
-    
-    // Update event listeners untuk video element baru
-    newVideoPlayer.addEventListener('load', handleVideoLoad);
-    newVideoPlayer.addEventListener('play', handleVideoPlay);
-    newVideoPlayer.addEventListener('error', handleVideoError);
-    newVideoPlayer.addEventListener('loadeddata', handleVideoLoad);
+  const oldPlayer = document.getElementById('video-player');
+  const container = oldPlayer.parentElement;
+  
+  const newVideo = document.createElement('video');
+  newVideo.id = 'video-player';
+  newVideo.controls = true;
+  newVideo.playsInline = true;
+  newVideo.setAttribute('webkit-playsinline', 'true');
+  newVideo.style.cssText = "position:absolute; top:0; left:0; width:100%; height:100%; object-fit:contain;";
+  
+  newVideo.src = videoUrl;
+  
+  oldPlayer.replaceWith(newVideo);
+  videoPlayer = newVideo;
+
+  // Bind events
+  videoPlayer.addEventListener('loadeddata', () => {
+    console.log('Video ready');
+    updateViewCount();
+  });
+  
+  videoPlayer.addEventListener('play', () => {
+    if (!hasIncrementedViews) updateViewCount();
+  });
+
+  videoPlayer.addEventListener('ended', handleMainVideoEnded);
+  
+  videoPlayer.addEventListener('error', (e) => {
+    console.error('Video Error:', videoPlayer.error);
+    showError('Gagal memutar video. Format mungkin tidak didukung atau link kadaluarsa.');
+  });
+
+  // Pre-roll setup
+  videoPlayer.addEventListener('loadedmetadata', () => {
+    if (!adFlags.pre) {
+      playPreRollThen(() => console.log('Preroll done'));
+    }
+    setupMidrollMonitor(videoPlayer);
+  });
 }
 
-// Get MIME type berdasarkan ekstensi file
-function getVideoMimeType(videoUrl) {
-    if (videoUrl.includes('.mp4')) return 'video/mp4';
-    if (videoUrl.includes('.webm')) return 'video/webm';
-    if (videoUrl.includes('.ogg')) return 'video/ogg';
-    if (videoUrl.includes('.mov')) return 'video/quicktime';
-    return 'video/mp4'; // default
+// ------------------------
+// URL PROCESSOR (Updated)
+// ------------------------
+async function processVideoUrl(url) {
+  if (!url) return '';
+  if (url.includes("youtube.com") || url.includes("youtu.be")) {
+    const id = url.includes("v=") ? new URL(url).searchParams.get("v") : url.split("/").pop();
+    return `https://www.youtube.com/embed/${id}?autoplay=0`;
+  }
+  // Supabase Storage
+  if (!url.startsWith("http")) {
+    const { data } = supabase.storage.from("videos").getPublicUrl(url);
+    return data.publicUrl;
+  }
+  return url; 
 }
 
-// Check description length and show/hide toggle button
-function checkDescriptionLength() {
-    if (!descEl || !toggleDescBtn) return;
+// ------------------------
+// ADS SYSTEM (VAST + TRACKING)
+// ------------------------
+function firePixel(url) {
+  if (!url) return;
+  const img = new Image();
+  img.src = url; // Memicu request background untuk tracking
+}
+
+async function fetchVastAndTrack(vastUrl) {
+  try {
+    const r = await fetch(vastUrl);
+    if (!r.ok) throw new Error('VAST Fetch Failed');
+    const text = await r.text();
+    const xml = new DOMParser().parseFromString(text, "application/xml");
+
+    // 1. Cari MediaFile (MP4/WebM)
+    const mediaFiles = Array.from(xml.getElementsByTagName("MediaFile"));
+    let mediaUrl = null;
+    for (const mf of mediaFiles) {
+      const type = mf.getAttribute('type') || '';
+      const content = mf.textContent.trim();
+      if ((type.includes('mp4') || content.endsWith('.mp4')) && content) {
+        mediaUrl = content;
+        break;
+      }
+    }
+    // Fallback pencarian URL
+    if (!mediaUrl) {
+        const anyUrl = xml.querySelector("MediaFile, VASTAdTagURI"); // Simple fallback
+        if (anyUrl) mediaUrl = anyUrl.textContent.trim();
+    }
+
+    // 2. Cari Impression Trackers
+    const impressions = [];
+    xml.querySelectorAll("Impression").forEach(n => {
+        if(n.textContent.trim()) impressions.push(n.textContent.trim());
+    });
+
+    return { mediaUrl, impressions };
+
+  } catch (e) {
+    console.warn('VAST Error:', e);
+    return { mediaUrl: null, impressions: [] };
+  }
+}
+
+async function playAdFromMediaUrl(mediaUrl, impressions = []) {
+  return new Promise((resolve) => {
+    if (!adOverlay || !adVideo) return resolve();
+
+    // Fire Tracking Pixels
+    impressions.forEach(url => firePixel(url));
+
+    adOverlay.classList.remove('hidden');
+    adOverlay.setAttribute('aria-hidden', 'false');
+    adVideo.src = mediaUrl;
+    adVideo.currentTime = 0;
     
-    // Reset untuk mengukur ulang
-    descEl.classList.remove('description-collapsed');
-    toggleDescBtn.classList.add('hidden');
+    adVideo.play().catch(e => {
+        adVideo.muted = true; // Auto-play policy fallback
+        adVideo.play();
+    });
+
+    let skipShown = false;
     
-    // Gunakan setTimeout untuk memastikan DOM sudah dirender
-    setTimeout(() => {
-        const lineHeight = parseInt(getComputedStyle(descEl).lineHeight);
-        const maxHeight = lineHeight * 2; // Maksimal 2 baris
+    const tick = setInterval(() => {
+        const left = Math.ceil(adVideo.duration - adVideo.currentTime);
+        adCountdown.innerHTML = `Iklan: ${left > 0 ? left : 0}s`;
         
-        if (descEl.scrollHeight > maxHeight) {
-            descEl.classList.add('description-collapsed');
-            toggleDescBtn.classList.remove('hidden');
-            toggleDescBtn.textContent = 'Selengkapnya';
+        if (!skipShown && adVideo.currentTime >= SKIP_AFTER_SECONDS) {
+            skipShown = true;
+            adSkipBtn.classList.remove('hidden');
         }
-    }, 100);
+    }, 500);
+
+    const cleanup = () => {
+        clearInterval(tick);
+        adOverlay.classList.add('hidden');
+        adVideo.pause();
+        adVideo.src = "";
+        adSkipBtn.classList.add('hidden');
+        resolve();
+    };
+
+    adVideo.onended = cleanup;
+    adVideo.onerror = cleanup;
+    adSkipBtn.onclick = cleanup;
+  });
 }
 
-// Toggle description visibility
-function toggleDescription() {
-    if (!descEl || !toggleDescBtn) return;
-    
-    if (descEl.classList.contains('description-collapsed')) {
-        // Tampilkan semua deskripsi
-        descEl.classList.remove('description-collapsed');
-        toggleDescBtn.textContent = 'Sembunyikan';
-    } else {
-        // Sembunyikan deskripsi (hanya 2 baris)
-        descEl.classList.add('description-collapsed');
-        toggleDescBtn.textContent = 'Selengkapnya';
-    }
+async function playPreRollThen(cb) {
+  if (adFlags.pre) return cb && cb();
+  
+  // Pause main video
+  if (videoPlayer && !videoPlayer.paused && videoPlayer.pause) videoPlayer.pause();
+
+  const { mediaUrl, impressions } = await fetchVastAndTrack(VAST_URL);
+  if (mediaUrl) {
+    await playAdFromMediaUrl(mediaUrl, impressions);
+  }
+  
+  adFlags.pre = true;
+  sessionStorage.setItem(ADS_SESSION_KEY, JSON.stringify(adFlags));
+  if (cb) cb();
+  // Resume main video if HTML5
+  if (videoPlayer && videoPlayer.play) videoPlayer.play();
 }
 
-// Switch tab function
-function switchTab(tabName) {
-    // Update tab buttons
-    if (episodesTab && recommendationsTab) {
-        episodesTab.classList.toggle('active', tabName === 'episodes');
-        recommendationsTab.classList.toggle('active', tabName === 'recommendations');
-    }
-    
-    // Update tab content
-    if (episodesContent && recommendationsContent) {
-        episodesContent.classList.toggle('active', tabName === 'episodes');
-        recommendationsContent.classList.toggle('active', tabName === 'recommendations');
-    }
-    
-    // Load content jika diperlukan
-    if (tabName === 'episodes') {
-        loadEpisodes();
-    } else if (tabName === 'recommendations') {
-        loadRecommendations();
-    }
-}
-
-// Handle video load
-function handleVideoLoad() {
-    console.log('Video loaded, checking for view increment...');
-    // Increment views when video is loaded and ready to play
-    if (!hasIncrementedViews) {
-        updateViewCount();
-    }
-}
-
-// Handle video play
-function handleVideoPlay() {
-    console.log('Video started playing...');
-    // Increment views when video starts playing (fallback)
-    if (!hasIncrementedViews) {
-        updateViewCount();
-    }
-}
-
-// Process video URL untuk berbagai sumber - DIPERBARUI untuk GoFile
-async function processVideoUrl(videoUrl) {
-    if (!videoUrl) return '';
-    
-    console.log('Processing video URL:', videoUrl);
-    
-    // YouTube URLs
-    if (videoUrl.includes("youtube.com/watch?v=")) {
-        const id = new URL(videoUrl).searchParams.get("v");
-        return `https://www.youtube.com/embed/${id}?autoplay=0`;
-    } else if (videoUrl.includes("youtu.be/")) {
-        const id = videoUrl.split("youtu.be/")[1];
-        return `https://www.youtube.com/embed/${id}?autoplay=0`;
-    } 
-    // Google Drive URLs
-    else if (videoUrl.includes("drive.google.com")) {
-        if (videoUrl.includes("/file/d/")) {
-            const fileId = videoUrl.split('/file/d/')[1].split('/')[0];
-            return `https://drive.google.com/file/d/${fileId}/preview`;
-        } else if (videoUrl.includes("id=")) {
-            const fileId = new URL(videoUrl).searchParams.get("id");
-            return `https://drive.google.com/file/d/${fileId}/preview`;
-        }
-    } 
-    // Wasabi URLs
-    else if (videoUrl.includes("wasabisys.com") || videoUrl.includes("s3.wasabisys.com")) {
-        // Wasabi URL langsung, return as-is untuk HTML5 video player
-        console.log('Wasabi video URL detected:', videoUrl);
-        return videoUrl;
-    }
-    // GoFile URLs - DITAMBAHKAN
-    else if (videoUrl.includes("gofile.io")) {
-        console.log('GoFile URL detected:', videoUrl);
-        return await processGoFileUrl(videoUrl);
-    }
-    // Supabase Storage URLs
-    else if (!videoUrl.startsWith("http")) {
-        const { data: urlData } = supabase.storage.from("videos").getPublicUrl(videoUrl);
-        return urlData.publicUrl;
-    }
-    
-    return videoUrl;
-}
-
-// Process GoFile URL untuk mendapatkan link streaming langsung
-async function processGoFileUrl(gofileUrl) {
-    try {
-        console.log('Processing GoFile URL:', gofileUrl);
-        
-        // Extract content ID dari URL GoFile
-        let contentId;
-        if (gofileUrl.includes('/d/')) {
-            contentId = gofileUrl.split('/d/')[1];
-        } else if (gofileUrl.includes('gofile.io/')) {
-            const parts = gofileUrl.split('/');
-            contentId = parts[parts.length - 1];
-        }
-        
-        if (!contentId) {
-            console.error('Cannot extract content ID from GoFile URL');
-            return gofileUrl; // Fallback ke URL asli
-        }
-        
-        // Dapatkan informasi file dari API GoFile
-        const apiResponse = await fetch(`https://api.gofile.io/getContent?contentId=${contentId}&token=`);
-        const apiData = await apiResponse.json();
-        
-        if (apiData.status === 'ok' && apiData.data) {
-            // Cari file video pertama
-            const findVideoFile = (content) => {
-                if (content.type === 'file' && isVideoFile(content.name)) {
-                    return content;
-                }
-                if (content.contents) {
-                    for (const key in content.contents) {
-                        const result = findVideoFile(content.contents[key]);
-                        if (result) return result;
-                    }
-                }
-                return null;
-            };
-            
-            const videoFile = findVideoFile(apiData.data);
-            if (videoFile && videoFile.link) {
-                console.log('Found GoFile video link:', videoFile.link);
-                return videoFile.link; // Link streaming langsung
-            }
-        }
-        
-        console.log('Using original GoFile URL as fallback');
-        return gofileUrl;
-        
-    } catch (error) {
-        console.error('Error processing GoFile URL:', error);
-        return gofileUrl; // Fallback ke URL asli jika error
-    }
-}
-
-// Helper function untuk mengecek apakah file adalah video
-function isVideoFile(filename) {
-    const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.flv', '.wmv', '.m4v', '.3gp'];
-    return videoExtensions.some(ext => filename.toLowerCase().endsWith(ext));
-}
-
-// Update view count - FIXED VERSION
-async function updateViewCount() {
-    if (!currentMovie || hasIncrementedViews) return;
-    
-    const movieId = currentMovie.id;
-    
-    try {
-        // Cek session storage untuk mencegah multiple increments
-        const viewKey = `viewed_${movieId}`;
-        const hasViewed = sessionStorage.getItem(viewKey);
-        
-        if (hasViewed) {
-            console.log('Already viewed in this session');
-            return;
-        }
-
-        console.log('Incrementing view count for movie:', movieId);
-        
-        // Method 1: Try RPC function first
-        const { data: rpcData, error: rpcError } = await supabase.rpc('increment_views', {
-            movie_id: movieId
-        });
-        
-        if (rpcError) {
-            console.log('RPC failed, trying direct update:', rpcError);
-            
-            // Method 2: Direct update sebagai fallback
-            const { data: movieData } = await supabase
-                .from("movies")
-                .select("views")
-                .eq("id", movieId)
-                .single();
-                
-            if (movieData) {
-                const newViews = (movieData.views || 0) + 1;
-                const { error: updateError } = await supabase
-                    .from("movies")
-                    .update({ views: newViews })
-                    .eq("id", movieId);
-                    
-                if (updateError) {
-                    console.error('Direct update also failed:', updateError);
-                    throw updateError;
-                }
-                
-                console.log('Direct update successful, new views:', newViews);
-                
-                // Update display
-                if (viewCount) {
-                    viewCount.textContent = `👁️ ${newViews} tayangan`;
-                }
-            }
-        } else {
-            console.log('RPC increment successful');
-            
-            // Refresh view count display
-            const { data: updatedMovie } = await supabase
-                .from("movies")
-                .select("views")
-                .eq("id", movieId)
-                .single();
-                
-            if (updatedMovie && viewCount) {
-                viewCount.textContent = `👁️ ${updatedMovie.views || 0} tayangan`;
-            }
-        }
-        
-        // Tandai sudah di-increment dalam session ini
-        sessionStorage.setItem(viewKey, 'true');
-        hasIncrementedViews = true;
-        
-        // Record watch history jika user login
-        await recordWatchHistory();
-        
-    } catch (error) {
-        console.error('Exception in updateViewCount:', error);
-        // Tetap tampilkan error tapi jangan ganggu user experience
-    }
-}
-
-// Record watch history
-async function recordWatchHistory() {
-    if (!currentUser || !currentMovie) return;
-    
-    try {
-        await supabase
-            .from("watch_history")
-            .upsert({
-                user_id: currentUser.id,
-                movie_id: currentMovie.id,
-                watched_at: new Date().toISOString()
+function setupMidrollMonitor(video) {
+    video.addEventListener('timeupdate', () => {
+        if (!adFlags.mid && video.currentTime > MIDROLL_OFFSET_SECONDS) {
+            adFlags.mid = true; // Mark first to prevent loop
+            video.pause();
+            fetchVastAndTrack(VAST_URL).then(({mediaUrl, impressions}) => {
+                if(mediaUrl) playAdFromMediaUrl(mediaUrl, impressions).then(() => video.play());
+                else video.play();
             });
-    } catch (error) {
-        console.error('Exception in recordWatchHistory:', error);
-    }
-}
-
-// Handle like
-async function handleLike() {
-    if (!currentUser || !currentMovie) {
-        showLoginPopup("menyukai film");
-        return;
-    }
-    
-    try {
-        const { data: existingLike } = await supabase
-            .from("likes")
-            .select("id")
-            .eq("movie_id", currentMovie.id)
-            .eq("user_id", currentUser.id)
-            .single();
-            
-        if (existingLike) {
-            await supabase.from("likes").delete().eq("id", existingLike.id);
-            if (likeBtn) likeBtn.classList.remove("liked");
-            showSuccessPopup('Like dihapus');
-        } else {
-            await supabase.from("likes").insert({
-                movie_id: currentMovie.id,
-                user_id: currentUser.id
-            });
-            if (likeBtn) likeBtn.classList.add("liked");
-            showSuccessPopup('Film disukai!');
         }
-        
-        await updateLikeCount();
-        
-    } catch (error) {
-        console.error('Exception in handleLike:', error);
-        showError('Gagal memperbarui like');
-    }
-}
-
-// Handle favorite
-async function handleFavorite() {
-    if (!currentUser || !currentMovie) {
-        showLoginPopup("menambah favorit");
-        return;
-    }
-    
-    try {
-        const { data: existingFav } = await supabase
-            .from("favorites")
-            .select("id")
-            .eq("movie_id", currentMovie.id)
-            .eq("user_id", currentUser.id)
-            .single();
-            
-        if (existingFav) {
-            await supabase.from("favorites").delete().eq("id", existingFav.id);
-            if (favBtn) favBtn.classList.remove("favorited");
-            showSuccessPopup('Dihapus dari favorit');
-        } else {
-            await supabase.from("favorites").insert({
-                movie_id: currentMovie.id,
-                user_id: currentUser.id
-            });
-            if (favBtn) favBtn.classList.add("favorited");
-            showSuccessPopup('Ditambahkan ke favorit!');
-        }
-        
-    } catch (error) {
-        console.error('Exception in handleFavorite:', error);
-        showError('Gagal memperbarui favorit');
-    }
-}
-
-// Handle share - menggunakan ID seperti semula
-function handleShare() {
-    const shareUrl = window.location.href;
-    const shareText = `Tonton "${currentMovie?.title || 'Film Menarik'}" di Dunia Film`;
-    
-    if (navigator.share) {
-        navigator.share({
-            title: currentMovie?.title || 'Dunia Film',
-            text: shareText,
-            url: shareUrl
-        }).catch(err => {
-            fallbackShare(shareUrl);
-        });
-    } else {
-        fallbackShare(shareUrl);
-    }
-}
-
-// Fallback share
-function fallbackShare(url) {
-    navigator.clipboard.writeText(url).then(() => {
-        showSuccessPopup('Link berhasil disalin!');
-    }).catch(err => {
-        prompt('Salin link berikut:', url);
     });
 }
 
-// Check like status
-async function checkLikeStatus() {
-    if (!currentUser || !currentMovie) {
-        if (likeBtn) likeBtn.classList.remove("liked");
-        return;
+async function handleMainVideoEnded() {
+    if (adFlags.post) return;
+    const { mediaUrl, impressions } = await fetchVastAndTrack(VAST_URL);
+    if (mediaUrl) {
+        await playAdFromMediaUrl(mediaUrl, impressions);
+        adFlags.post = true;
+        sessionStorage.setItem(ADS_SESSION_KEY, JSON.stringify(adFlags));
     }
-    
-    try {
-        const { data } = await supabase
-            .from("likes")
-            .select("id")
-            .eq("movie_id", currentMovie.id)
-            .eq("user_id", currentUser.id)
-            .single();
-            
-        if (data) {
-            if (likeBtn) likeBtn.classList.add("liked");
-        } else {
-            if (likeBtn) likeBtn.classList.remove("liked");
+}
+
+function stopAdAndResume() {
+    // Fungsi ini dipanggil tombol skip
+    // Logic cleanup sudah ada di dalam Promise playAdFromMediaUrl via onclick handler
+}
+
+function attemptPreRollForIframe() {
+    if (adFlags.pre) return;
+    fetchVastAndTrack(VAST_URL).then(({mediaUrl, impressions}) => {
+        if (mediaUrl) {
+            playAdFromMediaUrl(mediaUrl, impressions).then(() => {
+                adFlags.pre = true;
+                sessionStorage.setItem(ADS_SESSION_KEY, JSON.stringify(adFlags));
+            });
         }
-        
-        await updateLikeCount();
-        
-    } catch (error) {
-        console.error('Exception in checkLikeStatus:', error);
-    }
+    });
 }
 
-// Check favorite status
-async function checkFavoriteStatus() {
-    if (!currentUser || !currentMovie) {
-        if (favBtn) favBtn.classList.remove("favorited");
-        return;
-    }
-    
-    try {
-        const { data } = await supabase
-            .from("favorites")
-            .select("id")
-            .eq("movie_id", currentMovie.id)
-            .eq("user_id", currentUser.id)
-            .single();
-            
-        if (data) {
-            if (favBtn) favBtn.classList.add("favorited");
-        } else {
-            if (favBtn) favBtn.classList.remove("favorited");
-        }
-        
-    } catch (error) {
-        console.error('Exception in checkFavoriteStatus:', error);
-    }
+// ------------------------
+// TAB & CONTENT LOGIC (SECURE)
+// ------------------------
+function switchTab(tab) {
+  if (episodesTab) episodesTab.classList.toggle('active', tab === 'episodes');
+  if (recommendationsTab) recommendationsTab.classList.toggle('active', tab === 'recommendations');
+  
+  if (episodesContent) episodesContent.classList.toggle('active', tab === 'episodes');
+  if (recommendationsContent) recommendationsContent.classList.toggle('active', tab === 'recommendations');
+  
+  if (tab === 'episodes') loadEpisodes();
+  else loadRecommendations();
 }
 
-// Update like count
-async function updateLikeCount() {
-    if (!currentMovie) return;
-    
-    try {
-        const { count } = await supabase
-            .from("likes")
-            .select("*", { count: "exact", head: true })
-            .eq("movie_id", currentMovie.id);
-            
-        if (likeCount) likeCount.textContent = count || 0;
-        
-    } catch (error) {
-        console.error('Exception in updateLikeCount:', error);
-    }
+// Helper XSS Protection
+function escapeHtml(unsafe) {
+    if (typeof unsafe !== 'string') return '';
+    return unsafe
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
 }
 
-// ===============================
-// FUNGSI EPISODE
-// ===============================
-
-// Load episodes
 async function loadEpisodes() {
-    if (!currentMovie) return;
-    
-    try {
-        if (episodesList) episodesList.innerHTML = '<div class="loading-episodes">Memuat episode...</div>';
-        
-        // Ekstrak judul series dari judul film
-        const seriesTitle = extractSeriesTitle(currentMovie.title);
-        
-        if (!seriesTitle) {
-            episodesList.innerHTML = '<div class="loading-episodes">Tidak ada episode lainnya.</div>';
-            return;
-        }
-        
-        // Cari semua episode dari series yang sama
-        const { data: episodes, error } = await supabase
-            .from("movies")
-            .select("*")
-            .ilike("title", `${seriesTitle}%`)
-            .order("created_at", { ascending: true });
-            
-        if (error) throw error;
-        
-        renderEpisodes(episodes || []);
-        
-    } catch (error) {
-        console.error('Exception in loadEpisodes:', error);
-        if (episodesList) episodesList.innerHTML = '<div class="loading-episodes">Gagal memuat episode.</div>';
-    }
-}
+  if (!currentMovie) return;
+  const seriesTitle = extractSeriesTitle(currentMovie.title);
+  
+  if (!seriesTitle) {
+      episodesList.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:20px; color:#aaa;">Tidak ada episode lain.</div>';
+      return;
+  }
 
-// Extract series title dari judul film
-function extractSeriesTitle(title) {
-    if (!title) return null;
-    
-    // Pattern untuk mendeteksi episode (Episode 1, Part 2, Chapter 3, dll)
-    const episodePatterns = [
-        /(.*?)\s*[Ee]pisode\s*\d+/i,
-        /(.*?)\s*[Pp]art\s*\d+/i,
-        /(.*?)\s*[Cc]hapter\s*\d+/i,
-        /(.*?)\s*-\s*[Ee]pisode\s*\d+/i,
-        /(.*?)\s*\(\s*[Ee]pisode\s*\d+\s*\)/i,
-        /(.*?)\s*\d+$/ // Pattern untuk judul yang diakhiri angka
-    ];
-    
-    for (const pattern of episodePatterns) {
-        const match = title.match(pattern);
-        if (match && match[1]) {
-            return match[1].trim();
-        }
-    }
-    
-    return null;
-}
+  const { data } = await supabase.from("movies")
+      .select("id, title, thumbnail_url, views, duration")
+      .ilike("title", `${seriesTitle}%`)
+      .order("created_at", { ascending: true });
 
-// Extract episode number
-function extractEpisodeNumber(title) {
-    if (!title) return null;
-    
-    const episodePatterns = [
-        /[Ee]pisode\s*(\d+)/i,
-        /[Pp]art\s*(\d+)/i,
-        /[Cc]hapter\s*(\d+)/i,
-        /-\s*(\d+)$/,
-        /\(\s*(\d+)\s*\)$/,
-        /(\d+)$/
-    ];
-    
-    for (const pattern of episodePatterns) {
-        const match = title.match(pattern);
-        if (match && match[1]) {
-            return parseInt(match[1]);
-        }
-    }
-    
-    return null;
-}
+  if (!data || data.length === 0) {
+      episodesList.innerHTML = '<div style="grid-column:1/-1;">Tidak ada data.</div>';
+      return;
+  }
 
-// Render episodes - menggunakan struktur 9:16 dengan judul di bawah
-function renderEpisodes(episodes) {
-    if (!episodesList) return;
-    
-    if (!episodes || episodes.length === 0) {
-        episodesList.innerHTML = '<div class="loading-episodes">Tidak ada episode lainnya.</div>';
-        return;
-    }
-    
-    episodesList.innerHTML = episodes.map(movie => {
-        const episodeNumber = extractEpisodeNumber(movie.title);
-        const isCurrentEpisode = movie.id === currentMovie.id;
-        
-        return `
-            <div class="episode-item ${isCurrentEpisode ? 'current' : ''}" 
-                 onclick="location.href='detail.html?id=${movie.id}'">
-                <div class="episode-thumbnail-container">
-                    <img src="${movie.thumbnail_url || 'https://via.placeholder.com/200x355?text=No+Thumbnail'}" 
-                         alt="${movie.title}" 
-                         onerror="this.src='https://via.placeholder.com/200x355?text=No+Thumbnail'"
-                         loading="lazy">
-                </div>
-                <div class="episode-info">
-                    <div class="episode-number">${episodeNumber ? `Episode ${episodeNumber}` : 'Episode'}</div>
-                    <p class="episode-title">${escapeHtml(movie.title)}</p>
-                    <div class="episode-meta">
-                        <span class="views">👁️ ${movie.views || 0}</span>
-                        <span class="episode-duration">${movie.duration || '--:--'}</span>
-                    </div>
-                </div>
+  episodesList.innerHTML = data.map(m => {
+      const isCurr = m.id === currentMovie.id ? 'current' : '';
+      const epsNum = extractEpisodeNumber(m.title);
+      return `
+        <div class="episode-item ${isCurr}" onclick="handleEpisodeNavigation('${m.id}')">
+          <div class="episode-thumbnail-container">
+            <img src="${escapeHtml(m.thumbnail_url)}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x169?text=No+Image'">
+          </div>
+          <div class="episode-info">
+            <div class="episode-number">${epsNum ? 'Episode '+epsNum : ''}</div>
+            <p class="episode-title">${escapeHtml(m.title)}</p>
+            <div class="episode-meta">
+              <span>👁️ ${m.views||0}</span>
+              <span>${escapeHtml(m.duration||'')}</span>
             </div>
-        `;
-    }).join('');
+          </div>
+        </div>
+      `;
+  }).join('');
 }
 
-// ===============================
-// FUNGSI REKOMENDASI (VIDEO ACAK)
-// ===============================
-
-// Load recommendations - RANDOM VERSION
 async function loadRecommendations() {
     if (!currentMovie) return;
-    
-    try {
-        if (recommendList) recommendList.innerHTML = '<div class="loading-recommendations">Memuat rekomendasi...</div>';
-        
-        // Ambil 30-40 video secara acak yang bukan episode dari film yang sama
-        const { data: randomMovies, error } = await supabase
-            .from("movies")
-            .select("*")
-            .neq("id", currentMovie.id)
-            .limit(40);
-            
-        if (error) throw error;
-        
-        // Filter untuk menghilangkan episode dari series yang sama
-        const seriesTitle = extractSeriesTitle(currentMovie?.title);
-        let filteredMovies = randomMovies || [];
-        
-        if (seriesTitle) {
-            filteredMovies = filteredMovies.filter(movie => {
-                const movieSeriesTitle = extractSeriesTitle(movie.title);
-                return movieSeriesTitle !== seriesTitle;
-            });
-        }
-        
-        // Acak urutan video
-        const shuffledMovies = shuffleArray(filteredMovies);
-        
-        // Ambil 20-30 video untuk ditampilkan
-        const finalRecommendations = shuffledMovies.slice(0, 30);
-        
-        renderRecommendations(finalRecommendations);
-        
-    } catch (error) {
-        console.error('Exception in loadRecommendations:', error);
-        if (recommendList) recommendList.innerHTML = '<div class="loading-recommendations">Gagal memuat rekomendasi.</div>';
-    }
-}
+    const { data } = await supabase.from("movies")
+        .select("id, title, thumbnail_url, views, genre")
+        .neq("id", currentMovie.id)
+        .limit(20);
 
-// Fungsi untuk mengacak array
-function shuffleArray(array) {
-    const newArray = [...array];
-    for (let i = newArray.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-    }
-    return newArray;
-}
-
-// Render recommendations - menggunakan struktur 9:16 dengan judul di bawah
-function renderRecommendations(movies) {
-    if (!recommendList) return;
-    
-    if (!movies || movies.length === 0) {
-        recommendList.innerHTML = '<div class="loading-recommendations">Tidak ada rekomendasi.</div>';
+    if (!data || data.length === 0) {
+        recommendList.innerHTML = '<div style="grid-column:1/-1;">Belum ada rekomendasi.</div>';
         return;
     }
-    
-    // Tampilkan video dengan grid yang responsive
-    recommendList.innerHTML = movies.map(movie => `
-        <div class="recommend-item" onclick="location.href='detail.html?id=${movie.id}'">
-            <div class="recommend-thumbnail-container">
-                <img src="${movie.thumbnail_url || 'https://via.placeholder.com/200x355?text=No+Thumbnail'}" 
-                     alt="${movie.title}" 
-                     onerror="this.src='https://via.placeholder.com/200x355?text=No+Thumbnail'"
-                     loading="lazy">
-            </div>
-            <div class="recommend-info">
-                <p class="recommend-title-text">${escapeHtml(movie.title)}</p>
-                <div class="recommend-meta">
-                    <span class="views">👁️ ${movie.views || 0}</span>
-                    ${movie.genre ? `<span class="genre">${escapeHtml(movie.genre.split(',')[0])}</span>` : ''}
-                </div>
-            </div>
+
+    // Shuffle simple
+    const shuffled = data.sort(() => 0.5 - Math.random()).slice(0, 12);
+
+    recommendList.innerHTML = shuffled.map(m => `
+      <div class="recommend-item" onclick="handleRecommendationNavigation('${m.id}')">
+        <div class="recommend-thumbnail-container">
+          <img src="${escapeHtml(m.thumbnail_url)}" loading="lazy" onerror="this.src='https://via.placeholder.com/200x300?text=No+Image'">
         </div>
+        <div class="recommend-info">
+          <p class="recommend-title-text">${escapeHtml(m.title)}</p>
+          <div class="recommend-meta">
+            <span>👁️ ${m.views||0}</span>
+            ${m.genre ? `<span class="genre">${escapeHtml(m.genre.split(',')[0])}</span>` : ''}
+          </div>
+        </div>
+      </div>
     `).join('');
 }
 
-// ===============================
-// UTILITY FUNCTIONS
-// ===============================
-
-// Show login popup
-function showLoginPopup(action = "melakukan aksi ini") {
-    const popupText = document.querySelector(".login-popup p");
-    if (popupText) popupText.textContent = `Untuk ${action}, silakan login terlebih dahulu.`;
-    if (popup) popup.classList.remove("hidden");
+// ------------------------
+// UTILS
+// ------------------------
+function extractSeriesTitle(title) {
+  if (!title) return null;
+  const match = title.match(/(.*?)\s*(?:Episode|Ep|Part|Ch)\s*\d+/i);
+  return match ? match[1].trim() : null;
 }
 
-// Loading state
-function showLoading(show) {
-    let loadingEl = document.getElementById('loading-overlay');
-    if (!loadingEl && show) {
-        loadingEl = document.createElement('div');
-        loadingEl.id = 'loading-overlay';
-        loadingEl.className = 'loading-overlay';
-        loadingEl.innerHTML = `
-            <div class="loading-spinner"></div>
-            <p>Memuat...</p>
-        `;
-        document.body.appendChild(loadingEl);
-    } else if (loadingEl && !show) {
-        loadingEl.remove();
-    }
+function extractEpisodeNumber(title) {
+  const match = title.match(/(?:Episode|Ep|Part)\s*(\d+)/i);
+  return match ? match[1] : '';
 }
 
-// Error handling
-function showError(message) {
-    const errorEl = document.createElement('div');
-    errorEl.className = 'error-popup popup-overlay';
-    errorEl.innerHTML = `
-        <div class="popup-box error-popup">
-            <div class="popup-icon">❌</div>
-            <h3>Error</h3>
-            <p>${message}</p>
-            <button class="popup-ok-btn" onclick="this.parentElement.parentElement.remove()">OK</button>
-        </div>
-    `;
-    document.body.appendChild(errorEl);
+function checkDescriptionLength() {
+  if (descEl.scrollHeight > descEl.clientHeight) {
+      toggleDescBtn.classList.remove('hidden');
+      toggleDescBtn.onclick = () => {
+          descEl.classList.toggle('description-collapsed');
+          toggleDescBtn.textContent = descEl.classList.contains('description-collapsed') ? 'Selengkapnya' : 'Sembunyikan';
+      };
+      descEl.classList.add('description-collapsed');
+  }
 }
 
-// Success popup
-function showSuccessPopup(message) {
-    const successEl = document.createElement('div');
-    successEl.className = 'success-popup popup-overlay';
-    successEl.innerHTML = `
-        <div class="popup-box success-popup">
-            <div class="popup-icon">✅</div>
-            <h3>Sukses</h3>
-            <p>${message}</p>
-            <button class="popup-ok-btn" onclick="this.parentElement.parentElement.remove()">OK</button>
-        </div>
-    `;
-    document.body.appendChild(successEl);
-    
-    setTimeout(() => {
-        if (successEl.parentElement) {
-            successEl.remove();
-        }
-    }, 3000);
+function showError(msg) {
+    const d = document.createElement('div');
+    d.innerHTML = `<div class="popup-overlay"><div class="popup-box error-popup"><h3>Error</h3><p>${msg}</p><button onclick="this.parentElement.parentElement.remove()" class="popup-ok-btn">OK</button></div></div>`;
+    document.body.appendChild(d.firstChild);
 }
 
-// Handle video error
-function handleVideoError() {
-    const videoElement = document.getElementById('video-player');
-    if (!videoElement) return;
-    
-    // Cek jika ini GoFile dan gagal load
-    const currentSrc = videoElement.src;
-    if (currentSrc.includes('gofile.io')) {
-        showError(`
-            Video dari GoFile tidak dapat diputar langsung. 
-            Silakan klik link di bawah untuk menonton di website GoFile:
-            <br><br>
-            <a href="${currentSrc}" target="_blank" style="color: #ff0000; text-decoration: underline;">
-                Buka di GoFile
-            </a>
-        `);
-        return;
-    }
-    
-    const errorMessage = `
-        <div style="text-align: center; padding: 40px; color: #666; background: #1a1a1a; border-radius: 12px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-            <div style="font-size: 3rem; margin-bottom: 15px;">📹</div>
-            <h3 style="margin-bottom: 10px; color: #fff;">Video Tidak Dapat Diputar</h3>
-            <p style="margin-bottom: 20px;">Silakan coba beberapa saat lagi atau hubungi administrator.</p>
-            <button onclick="location.reload()" style="
-                background: #ff0000;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 6px;
-                cursor: pointer;
-                margin-top: 15px;
-            ">Coba Lagi</button>
-        </div>
-    `;
-    
-    if (videoElement.tagName === 'IFRAME') {
-        videoElement.outerHTML = `<div class="yt-video-container">${errorMessage}</div>`;
+// Update View Count Logic
+async function updateViewCount() {
+    if (hasIncrementedViews || !currentMovie) return;
+    hasIncrementedViews = true;
+    const viewKey = `viewed_${currentMovie.id}`;
+    if (sessionStorage.getItem(viewKey)) return;
+
+    await supabase.rpc('increment_views', { movie_id: currentMovie.id });
+    sessionStorage.setItem(viewKey, '1');
+}
+
+// Like & Fav Logic Simpel
+async function checkLikeStatus() {
+    if (!currentUser) return;
+    const { data } = await supabase.from("likes").select("id").match({movie_id: currentMovie.id, user_id: currentUser.id});
+    if (likeBtn) data && data.length ? likeBtn.classList.add("liked") : likeBtn.classList.remove("liked");
+}
+async function checkFavoriteStatus() {
+    if (!currentUser) return;
+    const { data } = await supabase.from("favorites").select("id").match({movie_id: currentMovie.id, user_id: currentUser.id});
+    if (favBtn) data && data.length ? favBtn.classList.add("favorited") : favBtn.classList.remove("favorited");
+}
+
+async function handleLike() {
+    if (!currentUser) return popup.classList.remove("hidden");
+    const isLiked = likeBtn.classList.contains("liked");
+    if (isLiked) {
+        await supabase.from("likes").delete().match({movie_id: currentMovie.id, user_id: currentUser.id});
+        likeBtn.classList.remove("liked");
     } else {
-        videoElement.outerHTML = errorMessage;
+        await supabase.from("likes").insert({movie_id: currentMovie.id, user_id: currentUser.id});
+        likeBtn.classList.add("liked");
+    }
+}
+async function handleFavorite() {
+    if (!currentUser) return popup.classList.remove("hidden");
+    const isFav = favBtn.classList.contains("favorited");
+    if (isFav) {
+        await supabase.from("favorites").delete().match({movie_id: currentMovie.id, user_id: currentUser.id});
+        favBtn.classList.remove("favorited");
+    } else {
+        await supabase.from("favorites").insert({movie_id: currentMovie.id, user_id: currentUser.id});
+        favBtn.classList.add("favorited");
+    }
+}
+function handleShare() {
+    const data = { title: currentMovie.title, url: window.location.href };
+    if (navigator.share) navigator.share(data);
+    else {
+        navigator.clipboard.writeText(data.url);
+        alert('Link disalin!');
     }
 }
 
-// Utility functions
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function formatTimeAgo(dateString) {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-    
-    if (diffMins < 1) return 'baru saja';
-    if (diffMins < 60) return `${diffMins} menit lalu`;
-    if (diffHours < 24) return `${diffHours} jam lalu`;
-    if (diffDays < 7) return `${diffDays} hari lalu`;
-    
-    return date.toLocaleDateString('id-ID');
-}
-
-// Global functions
-window.handleVideoError = handleVideoError;
+// Global Expose
+window.handleEpisodeNavigation = (id) => window.location.href = `detail.html?id=${id}`;
+window.handleRecommendationNavigation = (id) => window.location.href = `detail.html?id=${id}`;
+window.stopAdAndResume = stopAdAndResume;
