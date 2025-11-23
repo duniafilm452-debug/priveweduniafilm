@@ -1,8 +1,7 @@
-// detail.js (VERSI PRO FINAL - SECURE)
+// detail.js (VERSI PRO FINAL - SECURE + SMART RECOMMENDATION)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
 
 // ⚠️ PENTING: Pastikan Row Level Security (RLS) diaktifkan di Supabase Anda!
-// Kunci ini bersifat publik (anon key), keamanan data bergantung pada aturan RLS di server.
 const SUPABASE_URL = "https://kwuqrsnkxlxzqvimoydu.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3dXFyc25reGx4enF2aW1veWR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0MTQ5ODUsImV4cCI6MjA3NDk5MDk4NX0.6XQjnexc69VVSzvB5XrL8gFGM54Me9c5TrR20ysfvTk";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -48,9 +47,8 @@ let hasIncrementedViews = false;
 
 // Config Iklan
 const VAST_URL = "https://plumprush.com/d/m.FpzddGGnNHvPZ/G/Ue/Ye/mz9KucZ-UulikSPoTqYo2yO/TVIY4ZM/DpIxt/NcjlYe5NMdjbgdwEMmwp";
-const SKIP_AFTER_SECONDS = 5; // Lebih cepat (5 detik) lebih user friendly
+const SKIP_AFTER_SECONDS = 5; 
 const MIDROLL_OFFSET_SECONDS = 900; 
-const MIN_DURATION_FOR_MIDROLL = 300;
 const ADS_SESSION_KEY = `ads_shown_${movieId}`; 
 
 let adFlags = { pre: false, mid: false, post: false };
@@ -64,7 +62,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function initializeApp() {
-  // Skeleton sudah ada di HTML, tidak perlu showLoading overlay fullscreen
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (session) currentUser = session.user;
@@ -125,7 +122,6 @@ async function loadMovie() {
     await displayMovieData();
     await Promise.all([checkLikeStatus(), checkFavoriteStatus()]);
 
-    // Auto switch tab logic
     const seriesTitle = extractSeriesTitle(currentMovie.title);
     if (seriesTitle) {
       switchTab('episodes');
@@ -147,21 +143,18 @@ async function displayMovieData() {
   if (viewCount) viewCount.textContent = `👁️ ${currentMovie.views || 0} tayangan`;
 
   let videoUrl = currentMovie.video_url;
-  // Proses URL (GoFile/Drive/Direct)
   videoUrl = await processVideoUrl(videoUrl);
 
   videoPlayer = document.getElementById("video-player");
   if (!videoPlayer) return;
 
-  // Cek apakah URL adalah iframe embed
   const isEmbed = videoUrl.includes('youtube.com/embed') || videoUrl.includes('drive.google.com') || (videoUrl.includes('gofile.io') && !videoUrl.endsWith('.mp4'));
 
   if (isEmbed) {
     videoPlayer.src = videoUrl;
     videoPlayer.style.display = 'block';
-    attemptPreRollForIframe(); // Iklan untuk iframe
+    attemptPreRollForIframe();
   } else {
-    // Native HTML5 Video
     replaceIframeWithVideoPlayer(videoUrl);
   }
 }
@@ -171,21 +164,17 @@ async function displayMovieData() {
 // ------------------------
 function replaceIframeWithVideoPlayer(videoUrl) {
   const oldPlayer = document.getElementById('video-player');
-  const container = oldPlayer.parentElement;
-  
   const newVideo = document.createElement('video');
   newVideo.id = 'video-player';
   newVideo.controls = true;
   newVideo.playsInline = true;
   newVideo.setAttribute('webkit-playsinline', 'true');
   newVideo.style.cssText = "position:absolute; top:0; left:0; width:100%; height:100%; object-fit:contain;";
-  
   newVideo.src = videoUrl;
   
   oldPlayer.replaceWith(newVideo);
   videoPlayer = newVideo;
 
-  // Bind events
   videoPlayer.addEventListener('loadeddata', () => {
     console.log('Video ready');
     updateViewCount();
@@ -197,12 +186,10 @@ function replaceIframeWithVideoPlayer(videoUrl) {
 
   videoPlayer.addEventListener('ended', handleMainVideoEnded);
   
-  videoPlayer.addEventListener('error', (e) => {
-    console.error('Video Error:', videoPlayer.error);
+  videoPlayer.addEventListener('error', () => {
     showError('Gagal memutar video. Format mungkin tidak didukung atau link kadaluarsa.');
   });
 
-  // Pre-roll setup
   videoPlayer.addEventListener('loadedmetadata', () => {
     if (!adFlags.pre) {
       playPreRollThen(() => console.log('Preroll done'));
@@ -211,16 +198,12 @@ function replaceIframeWithVideoPlayer(videoUrl) {
   });
 }
 
-// ------------------------
-// URL PROCESSOR (Updated)
-// ------------------------
 async function processVideoUrl(url) {
   if (!url) return '';
   if (url.includes("youtube.com") || url.includes("youtu.be")) {
     const id = url.includes("v=") ? new URL(url).searchParams.get("v") : url.split("/").pop();
     return `https://www.youtube.com/embed/${id}?autoplay=0`;
   }
-  // Supabase Storage
   if (!url.startsWith("http")) {
     const { data } = supabase.storage.from("videos").getPublicUrl(url);
     return data.publicUrl;
@@ -234,7 +217,7 @@ async function processVideoUrl(url) {
 function firePixel(url) {
   if (!url) return;
   const img = new Image();
-  img.src = url; // Memicu request background untuk tracking
+  img.src = url;
 }
 
 async function fetchVastAndTrack(vastUrl) {
@@ -244,7 +227,6 @@ async function fetchVastAndTrack(vastUrl) {
     const text = await r.text();
     const xml = new DOMParser().parseFromString(text, "application/xml");
 
-    // 1. Cari MediaFile (MP4/WebM)
     const mediaFiles = Array.from(xml.getElementsByTagName("MediaFile"));
     let mediaUrl = null;
     for (const mf of mediaFiles) {
@@ -255,13 +237,11 @@ async function fetchVastAndTrack(vastUrl) {
         break;
       }
     }
-    // Fallback pencarian URL
     if (!mediaUrl) {
-        const anyUrl = xml.querySelector("MediaFile, VASTAdTagURI"); // Simple fallback
+        const anyUrl = xml.querySelector("MediaFile, VASTAdTagURI");
         if (anyUrl) mediaUrl = anyUrl.textContent.trim();
     }
 
-    // 2. Cari Impression Trackers
     const impressions = [];
     xml.querySelectorAll("Impression").forEach(n => {
         if(n.textContent.trim()) impressions.push(n.textContent.trim());
@@ -278,8 +258,6 @@ async function fetchVastAndTrack(vastUrl) {
 async function playAdFromMediaUrl(mediaUrl, impressions = []) {
   return new Promise((resolve) => {
     if (!adOverlay || !adVideo) return resolve();
-
-    // Fire Tracking Pixels
     impressions.forEach(url => firePixel(url));
 
     adOverlay.classList.remove('hidden');
@@ -288,16 +266,14 @@ async function playAdFromMediaUrl(mediaUrl, impressions = []) {
     adVideo.currentTime = 0;
     
     adVideo.play().catch(e => {
-        adVideo.muted = true; // Auto-play policy fallback
+        adVideo.muted = true;
         adVideo.play();
     });
 
     let skipShown = false;
-    
     const tick = setInterval(() => {
         const left = Math.ceil(adVideo.duration - adVideo.currentTime);
         adCountdown.innerHTML = `Iklan: ${left > 0 ? left : 0}s`;
-        
         if (!skipShown && adVideo.currentTime >= SKIP_AFTER_SECONDS) {
             skipShown = true;
             adSkipBtn.classList.remove('hidden');
@@ -321,8 +297,6 @@ async function playAdFromMediaUrl(mediaUrl, impressions = []) {
 
 async function playPreRollThen(cb) {
   if (adFlags.pre) return cb && cb();
-  
-  // Pause main video
   if (videoPlayer && !videoPlayer.paused && videoPlayer.pause) videoPlayer.pause();
 
   const { mediaUrl, impressions } = await fetchVastAndTrack(VAST_URL);
@@ -333,14 +307,13 @@ async function playPreRollThen(cb) {
   adFlags.pre = true;
   sessionStorage.setItem(ADS_SESSION_KEY, JSON.stringify(adFlags));
   if (cb) cb();
-  // Resume main video if HTML5
   if (videoPlayer && videoPlayer.play) videoPlayer.play();
 }
 
 function setupMidrollMonitor(video) {
     video.addEventListener('timeupdate', () => {
         if (!adFlags.mid && video.currentTime > MIDROLL_OFFSET_SECONDS) {
-            adFlags.mid = true; // Mark first to prevent loop
+            adFlags.mid = true;
             video.pause();
             fetchVastAndTrack(VAST_URL).then(({mediaUrl, impressions}) => {
                 if(mediaUrl) playAdFromMediaUrl(mediaUrl, impressions).then(() => video.play());
@@ -360,10 +333,7 @@ async function handleMainVideoEnded() {
     }
 }
 
-function stopAdAndResume() {
-    // Fungsi ini dipanggil tombol skip
-    // Logic cleanup sudah ada di dalam Promise playAdFromMediaUrl via onclick handler
-}
+function stopAdAndResume() {}
 
 function attemptPreRollForIframe() {
     if (adFlags.pre) return;
@@ -383,7 +353,6 @@ function attemptPreRollForIframe() {
 function switchTab(tab) {
   if (episodesTab) episodesTab.classList.toggle('active', tab === 'episodes');
   if (recommendationsTab) recommendationsTab.classList.toggle('active', tab === 'recommendations');
-  
   if (episodesContent) episodesContent.classList.toggle('active', tab === 'episodes');
   if (recommendationsContent) recommendationsContent.classList.toggle('active', tab === 'recommendations');
   
@@ -391,15 +360,9 @@ function switchTab(tab) {
   else loadRecommendations();
 }
 
-// Helper XSS Protection
 function escapeHtml(unsafe) {
     if (typeof unsafe !== 'string') return '';
-    return unsafe
-         .replace(/&/g, "&amp;")
-         .replace(/</g, "&lt;")
-         .replace(/>/g, "&gt;")
-         .replace(/"/g, "&quot;")
-         .replace(/'/g, "&#039;");
+    return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
 
 async function loadEpisodes() {
@@ -442,35 +405,76 @@ async function loadEpisodes() {
   }).join('');
 }
 
+// ==========================================
+// REKOMENDASI CERDAS (GENRE + ACAK) - UPDATED
+// ==========================================
 async function loadRecommendations() {
     if (!currentMovie) return;
-    const { data } = await supabase.from("movies")
-        .select("id, title, thumbnail_url, views, genre")
-        .neq("id", currentMovie.id)
-        .limit(20);
+    
+    const RECOMMENDATION_LIMIT = 12;
+    let finalMovies = [];
+    let existingIds = new Set(); 
+    existingIds.add(currentMovie.id);
 
-    if (!data || data.length === 0) {
-        recommendList.innerHTML = '<div style="grid-column:1/-1;">Belum ada rekomendasi.</div>';
-        return;
-    }
+    try {
+        // 1. Cari berdasarkan GENRE
+        if (currentMovie.genre) {
+            const mainGenre = currentMovie.genre.split(',')[0].trim();
+            const { data: genreData } = await supabase
+                .from("movies")
+                .select("id, title, thumbnail_url, views, genre")
+                .neq("id", currentMovie.id)
+                .ilike("genre", `%${mainGenre}%`)
+                .limit(RECOMMENDATION_LIMIT);
 
-    // Shuffle simple
-    const shuffled = data.sort(() => 0.5 - Math.random()).slice(0, 12);
+            if (genreData && genreData.length > 0) {
+                finalMovies = [...genreData];
+                genreData.forEach(m => existingIds.add(m.id));
+            }
+        }
 
-    recommendList.innerHTML = shuffled.map(m => `
-      <div class="recommend-item" onclick="handleRecommendationNavigation('${m.id}')">
-        <div class="recommend-thumbnail-container">
-          <img src="${escapeHtml(m.thumbnail_url)}" loading="lazy" onerror="this.src='https://via.placeholder.com/200x300?text=No+Image'">
-        </div>
-        <div class="recommend-info">
-          <p class="recommend-title-text">${escapeHtml(m.title)}</p>
-          <div class="recommend-meta">
-            <span>👁️ ${m.views||0}</span>
-            ${m.genre ? `<span class="genre">${escapeHtml(m.genre.split(',')[0])}</span>` : ''}
+        // 2. Isi sisa dengan FILM ACAK (Fallback)
+        if (finalMovies.length < RECOMMENDATION_LIMIT) {
+            const slotsNeeded = RECOMMENDATION_LIMIT - finalMovies.length;
+            const { data: randomData } = await supabase
+                .from("movies")
+                .select("id, title, thumbnail_url, views, genre")
+                .neq("id", currentMovie.id)
+                .limit(40); 
+
+            if (randomData && randomData.length > 0) {
+                const uniqueRandoms = randomData.filter(m => !existingIds.has(m.id));
+                const shuffled = uniqueRandoms.sort(() => 0.5 - Math.random());
+                const fillers = shuffled.slice(0, slotsNeeded);
+                finalMovies = [...finalMovies, ...fillers];
+            }
+        }
+
+        // 3. Render
+        if (finalMovies.length === 0) {
+            recommendList.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:#888;">Belum ada rekomendasi.</div>';
+            return;
+        }
+
+        recommendList.innerHTML = finalMovies.map(m => `
+          <div class="recommend-item" onclick="handleRecommendationNavigation('${m.id}')">
+            <div class="recommend-thumbnail-container">
+              <img src="${escapeHtml(m.thumbnail_url)}" loading="lazy" onerror="this.src='https://via.placeholder.com/200x300?text=No+Image'">
+            </div>
+            <div class="recommend-info">
+              <p class="recommend-title-text">${escapeHtml(m.title)}</p>
+              <div class="recommend-meta">
+                <span>👁️ ${m.views || 0}</span>
+                ${m.genre ? `<span class="genre">${escapeHtml(m.genre.split(',')[0])}</span>` : ''}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-    `).join('');
+        `).join('');
+
+    } catch (err) {
+        console.error('Recommendation Error:', err);
+        recommendList.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:#888;">Gagal memuat rekomendasi.</div>';
+    }
 }
 
 // ------------------------
