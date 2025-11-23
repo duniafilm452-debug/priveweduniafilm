@@ -1,153 +1,112 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Detail Film - Dunia Film</title>
-  <link rel="stylesheet" href="detail.css">
-
-  <script type="text/javascript">
-    atOptions = {
-      'key' : '11a1261bf18ae78cb1d4bcbbd8ad90f2',
-      'format' : 'iframe',
-      'height' : 50,
-      'width' : 320,
-      'params' : {}
-    };
-  </script>
-  <script type="text/javascript" src="//www.highperformanceformat.com/11a1261bf18ae78cb1d4bcbbd8ad90f2/invoke.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detail Film - Dunia Film</title>
+    <link rel="stylesheet" href="detail.css">
 </head>
 <body>
-  <header class="simple-header">
-    <button id="back-btn" class="back-home-btn" aria-label="Kembali ke Beranda">← Kembali</button>
-  </header>
+    <!-- Header -->
+    <header class="simple-header">
+        <button id="back-btn" class="back-home-btn">← Kembali</button>
+    </header>
 
-  <main class="yt-main">
-    <div class="ad-banner top-banner">
-      <script type="text/javascript">
-        atOptions = {
-          'key' : '11a1261bf18ae78cb1d4bcbbd8ad90f2',
-          'format' : 'iframe',
-          'height' : 50,
-          'width' : 320,
-          'params' : {}
-        };
-      </script>
-      <script type="text/javascript" src="//www.highperformanceformat.com/11a1261bf18ae78cb1d4bcbbd8ad90f2/invoke.js"></script>
-    </div>
-
-    <div class="yt-video-container">
-      <div id="ad-overlay" class="ad-overlay hidden" aria-hidden="true">
-        <video id="ad-video" playsinline webkit-playsinline></video>
-
-        <div class="ad-overlay-controls">
-          <div id="ad-countdown" class="ad-countdown">Iklan: <span id="ad-seconds">0</span>s</div>
-          <button id="ad-skip-btn" class="ad-skip-btn hidden">Lewati Iklan ⏭️</button>
+    <!-- Main Content -->
+    <main class="yt-main">
+        <!-- Video Player -->
+        <div class="yt-video-container">
+            <iframe 
+                id="video-player"
+                frameborder="0" 
+                allowfullscreen
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            ></iframe>
         </div>
-      </div>
 
-      <iframe
-        id="video-player"
-        frameborder="0"
-        allowfullscreen
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-      ></iframe>
-    </div>
+        <!-- Video Info -->
+        <section class="yt-info">
+            <h1 id="movie-title-below" class="yt-video-title">Memuat judul...</h1>
+            <div class="yt-stats">
+                <span id="view-count">👁️ 0 tayangan</span>
+                <div class="yt-actions">
+                    <button id="like-btn" class="yt-action-btn like-btn">
+                        👍 <span id="like-count">0</span>
+                    </button>
+                    <button id="fav-btn" class="yt-action-btn fav-btn">⭐ Favorit</button>
+                    <button id="share-btn" class="yt-action-btn">📤 Bagikan</button>
+                </div>
+            </div>
+        </section>
 
-    <div class="ad-banner bottom-banner">
-      <script type="text/javascript">
-        atOptions = {
-          'key' : '11a1261bf18ae78cb1d4bcbbd8ad90f2',
-          'format' : 'iframe',
-          'height' : 50,
-          'width' : 320,
-          'params' : {}
-        };
-      </script>
-      <script type="text/javascript" src="//www.highperformanceformat.com/11a1261bf18ae78cb1d4bcbbd8ad90f2/invoke.js"></script>
-    </div>
+        <!-- Description -->
+        <section class="yt-desc">
+            <p id="movie-desc" class="description-text">Memuat deskripsi...</p>
+            <button id="toggle-desc-btn" class="toggle-desc-btn hidden">Selengkapnya</button>
+        </section>
 
-    <section class="yt-info">
-      <h1 id="movie-title-below" class="yt-video-title">Memuat judul...</h1>
-      <div class="yt-stats">
-        <span id="view-count">👁️ 0 tayangan</span>
-        <div class="yt-actions">
-          <button id="like-btn" class="yt-action-btn like-btn" aria-label="Suka">👍 <span id="like-count">0</span></button>
-          <button id="fav-btn" class="yt-action-btn fav-btn" aria-label="Favorit">⭐ Favorit</button>
-          <button id="share-btn" class="yt-action-btn" aria-label="Bagikan">📤 Bagikan</button>
+        <!-- Tab Navigation -->
+        <section class="tab-navigation">
+            <div class="tab-buttons">
+                <button id="episodes-tab" class="tab-btn active" data-tab="episodes">Episode</button>
+                <button id="recommendations-tab" class="tab-btn" data-tab="recommendations">Rekomendasi</button>
+            </div>
+            
+            <!-- Episodes Content -->
+            <div id="episodes-content" class="tab-content active">
+                <div id="episodes-list" class="episodes-grid">
+                    <div class="loading-episodes">Memuat episode...</div>
+                </div>
+            </div>
+            
+            <!-- Recommendations Content -->
+            <div id="recommendations-content" class="tab-content">
+                <div id="recommend-list" class="recommendations-grid">
+                    <div class="loading-recommendations">Memuat rekomendasi...</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Login Popup -->
+    <div id="login-popup" class="popup-overlay hidden">
+        <div class="popup-box">
+            <div class="popup-icon">🔒</div>
+            <h3>Login Diperlukan</h3>
+            <p>Untuk melakukan aksi ini, silakan login terlebih dahulu.</p>
+            <div class="popup-actions">
+                <button id="popup-cancel" class="popup-cancel-btn">Batal</button>
+                <button id="popup-login" class="popup-login-btn">Login</button>
+            </div>
         </div>
-      </div>
-    </section>
+    </div>
 
-    <section class="yt-desc">
-      <p id="movie-desc" class="description-text">Memuat deskripsi...</p>
-      <button id="toggle-desc-btn" class="toggle-desc-btn hidden">Selengkapnya</button>
-    </section>
-
-    <section class="tab-navigation">
-      <div class="tab-buttons">
-        <button id="episodes-tab" class="tab-btn active" data-tab="episodes">Episode</button>
-        <button id="recommendations-tab" class="tab-btn" data-tab="recommendations">Rekomendasi</button>
-      </div>
-      
-      <div id="episodes-content" class="tab-content active">
-        <div id="episodes-list" class="episodes-grid">
-          <div class="skeleton-item"></div>
-          <div class="skeleton-item"></div>
-          <div class="skeleton-item"></div>
-          <div class="skeleton-item"></div>
+    <!-- Success Popup -->
+    <div id="success-popup" class="popup-overlay hidden">
+        <div class="popup-box success-popup">
+            <div class="popup-icon">✅</div>
+            <h3>Sukses</h3>
+            <p id="success-message">Aksi berhasil dilakukan!</p>
+            <button class="popup-ok-btn" onclick="this.parentElement.parentElement.remove()">OK</button>
         </div>
-      </div>
-      
-      <div id="recommendations-content" class="tab-content">
-        <div id="recommend-list" class="recommendations-grid">
-          <div class="skeleton-item"></div>
-          <div class="skeleton-item"></div>
-          <div class="skeleton-item"></div>
+    </div>
+
+    <!-- Error Popup -->
+    <div id="error-popup" class="popup-overlay hidden">
+        <div class="popup-box error-popup">
+            <div class="popup-icon">❌</div>
+            <h3>Error</h3>
+            <p id="error-message">Terjadi kesalahan.</p>
+            <button class="popup-ok-btn" onclick="this.parentElement.parentElement.remove()">OK</button>
         </div>
-      </div>
-    </section>
-  </main>
-
-  <div id="social-bar" class="social-bar">
-    <script type='text/javascript' src='//pl28098038.effectivegatecpm.com/58/9c/6e/589c6eb0b4d815d907b51a3481983e40.js'></script>
-  </div>
-
-  <div id="login-popup" class="popup-overlay hidden">
-    <div class="popup-box">
-      <div class="popup-icon">🔒</div>
-      <h3>Login Diperlukan</h3>
-      <p>Untuk melakukan aksi ini, silakan login terlebih dahulu.</p>
-      <div class="popup-actions">
-        <button id="popup-cancel" class="popup-cancel-btn">Batal</button>
-        <button id="popup-login" class="popup-login-btn">Login</button>
-      </div>
     </div>
-  </div>
 
-  <div id="success-popup" class="popup-overlay hidden">
-    <div class="popup-box success-popup">
-      <div class="popup-icon">✅</div>
-      <h3>Sukses</h3>
-      <p id="success-message">Aksi berhasil dilakukan!</p>
-      <button class="popup-ok-btn" onclick="this.parentElement.parentElement.remove()">OK</button>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="loading-spinner"></div>
+        <p>Memuat...</p>
     </div>
-  </div>
 
-  <div id="error-popup" class="popup-overlay hidden">
-    <div class="popup-box error-popup">
-      <div class="popup-icon">❌</div>
-      <h3>Error</h3>
-      <p id="error-message">Terjadi kesalahan.</p>
-      <button class="popup-ok-btn" onclick="this.parentElement.parentElement.remove()">OK</button>
-    </div>
-  </div>
-
-  <div id="loading-overlay" class="loading-overlay hidden">
-    <div class="loading-spinner"></div>
-    <p>Memuat...</p>
-  </div>
-
-  <script type="module" src="detail.js"></script>
+    <script type="module" src="detail.js"></script>
 </body>
 </html>
